@@ -37,7 +37,7 @@ localrootDir = msl_env_vars.local_pds_msl_imaging_rootDir;
 
 url_remote_root = 'pds-imaging.jpl.nasa.gov/data/msl/';
 
-url_local_root = joinPath(localrootDir, '/pds-imaging.jpl.nasa.gov/data/msl/');
+url_local_root = joinPath(localrootDir, 'pds-imaging.jpl.nasa.gov/data/msl/');
 
 
 basenamePtrn = '.*';
@@ -212,7 +212,7 @@ end
 if ~errflg
     
     % get all the links
-    [lnks] = get_links_remoteHTML_pds_mastcam(html);
+    [lnks] = get_links_remoteHTML_pds_msl_imaging(html);
 
 
     match_flg = 0;
