@@ -1,11 +1,13 @@
-function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv)
-% [plane_param] = get_plane_param_coefficient(ppv1,ppv2,ppv3,tppv)
+function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,is_gpu)
+% [plane_param] = get_plane_param_coefficient(ppv1,ppv2,ppv3,tppv,is_gpu)
 % Evaluate plane parameters 
 %    ppv1 + plane_param(1)(ppv2-ppv1) + plane_param(2)(ppv3-ppv1)
-% of the orthogonal projection of a give point vector: pipv.
+% of the orthogonal projection of a give point vector: pipv onto the plane
+% determined by three vectors (ppv1, ppv2, ppv3).
 % INPUTS
 %  ppv1, ppv2, ppv3: plane positional vectors [3 x 1]
-%  tppv: tested positional vector
+%  pipv: tested positional vector [3 x 1], [3 x N]
+%  is_gpu: boolean, whether or not to use GPU.
 % OUTPUTS
 %  plane_param: paramete vector for a plane
 %  is_in_face: whether or not orthogonal projection of pipv fall within the
@@ -14,9 +16,23 @@ function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,p
 
 pdv1 = ppv2-ppv1; % plane direction vector
 pdv2 = ppv3-ppv1;
-M = [pdv1 pdv2]; pipv_inp = pipv - ppv1;
-plane_param = M \ pipv_inp;
-is_in_face = ( all(plane_param>=0) && sum(plane_param)<=1 );
+M = cat(2,pdv1,pdv2);
+pipv_inp = pipv - ppv1;
+
+% below opeartion is faster than 
+% plane_param = mmx('backslash',M, pipv_inp);
+% Mpinv = mmx('backslash',M,repmat(eye(size(M,1)),[1,1,size(M,3)])); 
+% plane_param = mmx('mult',Mpinv, pipv_inp);
+
+if is_gpu
+    Mpinv = M \ eye(size(M,1),'gpuArray');
+else
+    Mpinv = M \ eye(size(M,1));
+end
+plane_param = Mpinv*pipv_inp;
+% plane_param = M \ pipv_inp;
+
+is_in_face = and( all(plane_param>=0,1), sum(plane_param,1)<=1 );
 
 % Mtmp = [pdv1 pdv2] ./ ldv';
 % M = Mtmp(1:2,:)-Mtmp(2:3,:);
