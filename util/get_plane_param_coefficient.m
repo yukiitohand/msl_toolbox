@@ -1,4 +1,4 @@
-function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,is_gpu)
+function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,precision,is_gpu)
 % [plane_param] = get_plane_param_coefficient(ppv1,ppv2,ppv3,tppv,is_gpu)
 % Evaluate plane parameters 
 %    ppv1 + plane_param(1)(ppv2-ppv1) + plane_param(2)(ppv3-ppv1)
@@ -25,9 +25,9 @@ pipv_inp = pipv - ppv1;
 % plane_param = mmx('mult',Mpinv, pipv_inp);
 
 if is_gpu
-    Mpinv = M \ eye(size(M,1),'gpuArray');
+    Mpinv = M \ eye(size(M,1),precision,'gpuArray');
 else
-    Mpinv = M \ eye(size(M,1));
+    Mpinv = M \ eye(size(M,1),precision);
 end
 plane_param = Mpinv*pipv_inp;
 % plane_param = M \ pipv_inp;
