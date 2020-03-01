@@ -1,4 +1,4 @@
-function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,precision,is_gpu)
+function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,precision,gpu,is_page)
 % [plane_param] = get_plane_param_coefficient(ppv1,ppv2,ppv3,tppv,is_gpu)
 % Evaluate plane parameters 
 %    ppv1 + plane_param(1)(ppv2-ppv1) + plane_param(2)(ppv3-ppv1)
@@ -8,6 +8,7 @@ function [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,p
 %  ppv1, ppv2, ppv3: plane positional vectors [3 x 1]
 %  pipv: tested positional vector [3 x 1], [3 x N]
 %  is_gpu: boolean, whether or not to use GPU.
+%  is_page: whether or not to any inputs has the third dimesion.
 % OUTPUTS
 %  plane_param: paramete vector for a plane
 %  is_in_face: whether or not orthogonal projection of pipv fall within the
@@ -21,16 +22,20 @@ pipv_inp = pipv - ppv1;
 
 % below opeartion is faster than 
 % plane_param = mmx('backslash',M, pipv_inp);
-% Mpinv = mmx('backslash',M,repmat(eye(size(M,1)),[1,1,size(M,3)])); 
-% plane_param = mmx('mult',Mpinv, pipv_inp);
-
-if is_gpu
-    Mpinv = M \ eye(size(M,1),precision,'gpuArray');
-else
-    Mpinv = M \ eye(size(M,1),precision);
-end
-plane_param = Mpinv*pipv_inp;
 % plane_param = M \ pipv_inp;
+if is_page && gpu
+    Mpinv = pagefun(@mtimes,pagefun(@mldivide, pagefun(@mtimes,permute(M,[2,1,3]),M), eye(size(M,2),precision,'gpuArray')),permute(M,[2,1,3]));
+    plane_param = pagefun(@mtimes,Mpinv,pipv_inp);
+elseif is_page && ~gpu
+    Mpinv = mmx('backslash',M,repmat(eye(size(M,1)),[1,1,size(M,3)])); 
+    plane_param = mmx('mult',Mpinv, pipv_inp);
+elseif ~ispage && gpu
+    Mpinv = M \ eye(size(M,1),precision,'gpuArray');
+    plane_param = Mpinv*pipv_inp;
+elseif ~ispage && ~gpu
+    Mpinv = M \ eye(size(M,1),precision);
+    plane_param = Mpinv*pipv_inp;
+end
 
 is_in_face = and( all(plane_param>=0,1), sum(plane_param,1)<=1 );
 
