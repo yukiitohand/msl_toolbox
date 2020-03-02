@@ -29,10 +29,10 @@ if is_page && gpu
 elseif is_page && ~gpu
     Mpinv = mmx('backslash',M,repmat(eye(size(M,1)),[1,1,size(M,3)])); 
     plane_param = mmx('mult',Mpinv, pipv_inp);
-elseif ~ispage && gpu
+elseif ~is_page && gpu
     Mpinv = M \ eye(size(M,1),precision,'gpuArray');
     plane_param = Mpinv*pipv_inp;
-elseif ~ispage && ~gpu
+elseif ~is_page && ~gpu
     Mpinv = M \ eye(size(M,1),precision);
     plane_param = Mpinv*pipv_inp;
 end
