@@ -1,4 +1,4 @@
-function [match_list] = mastcam_product_search(propMASTCAM)
+function [RDRINDEX_matched] = mastcam_product_search(propMASTCAM)
 
 
 [volid_ident_support] = mastcam_get_volid_ident_support();
@@ -11,12 +11,12 @@ if isnumeric(propMASTCAM.sol)
     
     basenamePtrn = get_basenameMASTCAM_fromProp(propMASTCAM);
     
-    match_list = [];
+    RDRINDEX_matched = [];
     for vi=1:length(volid_candidates)
         volid = volid_candidates(vi);
         load(sprintf('RDRINDEX_MSLMST_%04d.mat',volid),'rdrindex');
         [m,mi] = searchby('PRODUCT_ID',basenamePtrn,rdrindex);
-        match_list = [match_list m];
+        RDRINDEX_matched = [RDRINDEX_matched; m];
     end
     
     

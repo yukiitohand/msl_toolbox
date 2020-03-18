@@ -48,29 +48,31 @@ if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
     for i=1:2:(length(varargin)-1)
-        switch upper(varargin{i})
-            case 'SOL'
-                sol = varargin{i+1};
-            case 'CAM_CODE'
-                cam_code = varargin{i+1};
-            case 'SEQ_ID'
-                seq_id = varargin{i+1};
-            case 'COMMAND_NUM'
-                command_num = varargin{i+1};
-            case 'CDPID_COUNTER'
-                cdpid_counter = varargin{i+1};
-            case 'UNIQUE_CDPID'
-                unique_cdpid = varargin{i+1};
-            case 'PRODUCT_TYPE'
-                product_type = varargin{i+1};
-            case 'GOP'
-                gop = varargin{i+1};
-            case 'DATA_PROC_CODE'
-                data_proc_code = varargin{i+1};
-            case 'VERSION'
-                vr = varargin{i+1};
-            otherwise
-                error('Unrecognized option: %s', varargin{i});   
+        if ~isempty(varargin{i+1})
+            switch upper(varargin{i})
+                case 'SOL'
+                    sol = varargin{i+1};
+                case 'CAM_CODE'
+                    cam_code = varargin{i+1};
+                case 'SEQ_ID'
+                    seq_id = varargin{i+1};
+                case 'COMMAND_NUM'
+                    command_num = varargin{i+1};
+                case 'CDPID_COUNTER'
+                    cdpid_counter = varargin{i+1};
+                case 'UNIQUE_CDPID'
+                    unique_cdpid = varargin{i+1};
+                case 'PRODUCT_TYPE'
+                    product_type = varargin{i+1};
+                case 'GOP'
+                    gop = varargin{i+1};
+                case 'DATA_PROC_CODE'
+                    data_proc_code = varargin{i+1};
+                case 'VERSION'
+                    vr = varargin{i+1};
+                otherwise
+                    error('Unrecognized option: %s', varargin{i});   
+            end
         end
     end
 end

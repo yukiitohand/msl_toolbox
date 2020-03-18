@@ -24,5 +24,6 @@ roll_mat = [...
 ];
 
 rot_mat = yaw_mat * pitch_mat * roll_mat;
+% rot_mat = roll_mat * pitch_mat * yaw_mat;
 
 end
