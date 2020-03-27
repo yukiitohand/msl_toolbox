@@ -1,4 +1,4 @@
-wavelength (nm) transmission
+wavelength transmission
 846 0.142
 847 0.262
 848 0.539
