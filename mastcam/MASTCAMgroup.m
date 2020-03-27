@@ -11,8 +11,8 @@ classdef MASTCAMgroup < handle
     %    information.
     
     properties
-        L          = MASTCAMgroup_eye(); % LEFT CAMERA
-        R          = MASTCAMgroup_eye(); % RIGHT CAMERA
+        L          % = MASTCAMgroup_eye(); % LEFT CAMERA
+        R          % = MASTCAMgroup_eye(); % RIGHT CAMERA
         PRODUCT_ID                       % PRODUCT ID list
         RMC                              % ROVER MOTION COUNTER
         ROVER_NAV
@@ -20,6 +20,8 @@ classdef MASTCAMgroup < handle
     
     methods
         function obj = MASTCAMgroup()
+            obj.L = MASTCAMgroup_eye();
+            obj.R = MASTCAMgroup_eye();
             
         end
         
@@ -50,5 +52,10 @@ classdef MASTCAMgroup < handle
             obj.(mst_eye).append(mst_obj);
         end
         
+        function delete(obj)
+            delete(obj.L);
+            delete(obj.R);
+            delete(obj);
+        end
     end
 end
