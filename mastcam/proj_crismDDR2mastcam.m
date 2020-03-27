@@ -111,7 +111,7 @@ ddr_rov0_northing = ddr_geo_northing - rov_northing;
 ddr_rov0_easting = ddr_geo_easting - rov_easting;
 ddr_rov0_z =  -ddr_geo_elevation - (-rov_elevation); % z is looking down, zenith.
 
-margin_default = 200;
+margin_default = 500;
 
 switch upper(proc_mode)
     case 'LINEBYLINE'
