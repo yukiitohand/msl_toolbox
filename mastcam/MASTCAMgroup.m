@@ -52,10 +52,10 @@ classdef MASTCAMgroup < handle
             obj.(mst_eye).append(mst_obj);
         end
         
-        function delete(obj)
-            delete(obj.L);
-            delete(obj.R);
-            delete(obj);
-        end
+        % function delete(obj)
+        %     delete(obj.L);
+        %     delete(obj.R);
+        %     delete(obj);
+        % end
     end
 end
