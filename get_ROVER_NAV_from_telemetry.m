@@ -70,7 +70,7 @@ if ~exist(msl_telemtery_matfname)
     MSL_telemetry_MAP_PIXEL_LINE = cat(1,telemetry.MAP_PIXEL_LINE);
     MSL_telemetry_MAP_PIXEL_SAMPLE = cat(1,telemetry.MAP_PIXEL_SAMPLE);
     MSL_telemetry_DEM_PIXEL_LINE = cat(1,telemetry.DEM_PIXEL_LINE);
-    MSL_telemetry_DEM_PIXEL_SAMPLE = cat(1,telemetry.MAP_PIXEL_SAMPLE);
+    MSL_telemetry_DEM_PIXEL_SAMPLE = cat(1,telemetry.DEM_PIXEL_SAMPLE);
     MSL_telemetry_ROLL = cat(1,telemetry.ROLL);
     MSL_telemetry_PITCH = cat(1,telemetry.PITCH);
     MSL_telemetry_YAW = cat(1,telemetry.YAW);
