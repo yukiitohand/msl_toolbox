@@ -1,5 +1,5 @@
-function [mastcam_prj] = proj_mastcam2crismDDR(mastcamdata_obj,DDRprj,varargin)
-% [mastcam_prj] = proj_mastcam2crismDDR(mastcamdata_obj,DDRprj,varargin)
+function [mastcam_prj,DDRprj] = proj_mastcam2crismDDR(mastcamdata_obj,DDRprj,varargin)
+% [mastcam_prj,DDRprj] = proj_mastcam2crismDDR(mastcamdata_obj,DDRprj,varargin)
 %   Project mastcam image onto crismDDR image
 %  INPUTS:
 %   mastcamdata_obj: MASTCAMdata or MASTCAMgroup_eye class object
@@ -23,12 +23,18 @@ function [mastcam_prj] = proj_mastcam2crismDDR(mastcamdata_obj,DDRprj,varargin)
 %    mastcam_prj: struct having fields
 %      NorthEastElevation: [L_im x S_im x 3]
 %       pages 1,2,3 are northing, easting, and elevation. 
-%      MSLDEM_ref: [L_im x S_im x 3]
-%       indicate which triangle in the MSLDEMdata, the pixel is located.
+%      DDR_ref: [L_im x S_im x 3]
+%       indicate which triangle in the DDRdata, the pixel is located.
 %       pages 1,2,3 are sample, line, and j. j is either 1 or 2, indicating
 %       which triangle at the (sample, line).
 %      range: [L_im x S_im]
 %       range for each pixel.
+%      DDR_nn: [L_im x S_im x 2]
+%       nearest neighbor pixels in DDR image. The first page is the sample
+%       indices and the second is the line indexes.
+%    DDRprj: one field added to the input DDRprj
+%      imFOV_mask_nh: [L_ddr x S_ddr x 1]
+%       Boolean, imFOV_mask with hidden points are removed.
 
 is_gpu = false;
 precision = 'double';
@@ -52,6 +58,7 @@ end
 ddr_geo = DDRprj.NorthEastElevation;
 ddr_imFOV_mask = DDRprj.imFOV_mask;
 ddr_imxy = DDRprj.imxy;
+L_ddr = size(DDRprj.imFOV_mask,1); S_ddr = size(DDRprj.imFOV_mask,2);
 
 cam_C_geo = reshape(mastcamdata_obj.CAM_MDL_GEO.C_geo,3,1);
 
@@ -95,25 +102,10 @@ imxy_direc_geo_2d = permute(...
 % camera center information
 cam_C_geo = reshape(cam_C_geo,[],1);
 
-% dem images
-
-if is_gpu
-    % dem_northing = gpuArray(dem_northing);
-    % deml_easting = gpuArray(deml_easting);
-end
-
-switch lower(precision)
-    case 'double'
-        % dem_northing = double(dem_northing);
-        % deml_easting = double(deml_easting);
-    case 'single'
-        % dem_northing = single(dem_northing);
-        % deml_easting = single(deml_easting);
-end
-
 imxyz_geo = nan(3,L_im*S_im,precision,gpu_varargin{:});
 imxyz_geo_ref = nan(3,L_im*S_im,precision,gpu_varargin{:});
 imxyz_geo_range = inf(1,L_im*S_im,precision,gpu_varargin{:});
+ddr_nn = nan(2,L_im*S_im,precision,gpu_varargin{:});
 
 % if the whole line is outside of FOV, skip
 % it is important to take the any in the dimension 1.
@@ -159,6 +151,10 @@ for li = 1:len_vl % l = 27270
                 ppv1_geo = ddrl_geo(:,1,s); % plane position vector
                 ppv2_geo = ddrl_geo(:,1,s+1);
                 ppv3_geo = ddrl_geo(:,2,s);
+                ppv4_geo = ddrl_geo(:,2,s+1);
+                ppv_geo_idxList = [...
+                    s,s+1,  s,s+1;
+                    l,  l,l+1,l+1];
             elseif j==2
                 ppv1 = ddrl_imxy(:,1,s_ddr_imxy+1);
                 ppv2 = ddrl_imxy(:,2,s_ddr_imxy+1);
@@ -166,8 +162,13 @@ for li = 1:len_vl % l = 27270
                 ppv1_geo = ddrl_geo(:,1,s+1);
                 ppv2_geo = ddrl_geo(:,2,s+1);
                 ppv3_geo = ddrl_geo(:,2,s);
+                ppv4_geo = ddrl_geo(:,1,s);
+                ppv_geo_idxList = [...
+                    s+1,s+1,  s,  s;
+                      l,l+1,l+1,  l];
             end
             ppv_xyList = [ppv1 ppv2 ppv3];
+            ppv_geoList = [ppv1_geo ppv2_geo ppv3_geo ppv4_geo];
             
             if any(isnan(ppv_xyList(:)))
                 ppv_xy_isnan = true;
@@ -213,15 +214,22 @@ for li = 1:len_vl % l = 27270
                     ppv1_geo,ppv2_geo,ppv3_geo,pipv,precision,is_gpu,proc_page);
             end
             
-            imxyz_geo_s = ppv1_geo + ([ppv2_geo ppv3_geo] - ppv1_geo) *plane_param;
-            imxyz_geo_range_s = sqrt(sum((imxyz_geo_s - cam_C_geo).^2,1));
+            if any(is_in_face)
+                imxyz_geo_s = ppv1_geo + ([ppv2_geo ppv3_geo] - ppv1_geo) *plane_param;
+                imxyz_geo_range_s = sqrt(sum((imxyz_geo_s - cam_C_geo).^2,1));
 
-            imls_update = find(and( is_in_face, imxyz_geo_range_s < imxyz_geo_range(:,idx_xy2d_list) ));
-            if ~isempty(imls_update)
-                idxes_update = idx_xy2d_list(imls_update);
-                imxyz_geo(:,idxes_update) = imxyz_geo_s(:,imls_update);
-                imxyz_geo_ref(:,idxes_update) = repmat([s;l;j],[1,length(imls_update)]);
-                imxyz_geo_range(idxes_update) = imxyz_geo_range_s(1,imls_update);
+                imls_update = find(and( is_in_face, imxyz_geo_range_s < imxyz_geo_range(:,idx_xy2d_list) ));
+                if ~isempty(imls_update)
+                    idxes_update = idx_xy2d_list(imls_update);
+                    imxyz_geo(:,idxes_update) = imxyz_geo_s(:,imls_update);
+                    imxyz_geo_ref(:,idxes_update) = repmat([s;l;j],[1,length(imls_update)]);
+                    imxyz_geo_range(idxes_update) = imxyz_geo_range_s(1,imls_update);
+                    
+                    % get nearest neighbor
+                    dst = sum((imxyz_geo_s(1:2,imls_update) - permute(ppv_geoList(1:2,:),[1,3,2])).^2,1);
+                    [~,min_idx] = min(dst,[],3);
+                    ddr_nn(:,idxes_update) = ppv_geo_idxList(:,min_idx);
+                end
             end
         end
     end
@@ -236,9 +244,26 @@ if is_gpu
 
 end
 
+ddr_nn = permute(reshape(ddr_nn,[2,L_im,S_im]),[2,3,1]);
+% compute which pixels are in the MASTCAM image. In particualr, this
+% evaluates whether or not a pixel is in the image in a nearest neighbor
+% sense. 
+% idx_nn = reshape(ddr_nn,[L_im*S_im,2]);
+idx_nn = (ddr_nn(:,:,1)-1)*L_ddr + ddr_nn(:,:,2);
+idx_nn = idx_nn(:);
+idx_nn_1d_nisnan = ~isnan(idx_nn);
+idx_nn_1d_ok = idx_nn(idx_nn_1d_nisnan);
+img_mask_nh = false(L_ddr*S_ddr,1);
+img_mask_nh(idx_nn_1d_ok) = true;
+img_mask_nh = reshape(img_mask_nh,L_ddr,S_ddr);
+
+
 mastcam_prj = [];
 mastcam_prj.NorthEastElevation = permute(reshape(imxyz_geo,[3,L_im,S_im]),[2,3,1]);
-mastcam_prj.ddr_ref = permute(reshape(imxyz_geo_ref,[3,L_im,S_im]),[2,3,1]);
+mastcam_prj.DDR_ref = permute(reshape(imxyz_geo_ref,[3,L_im,S_im]),[2,3,1]);
 mastcam_prj.range = reshape(imxyz_geo_range,[L_im,S_im]);
+mastcam_prj.DDR_nn = ddr_nn;
+
+DDRprj.imFOV_mask_nh = img_mask_nh;
 
 end
