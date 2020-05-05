@@ -53,7 +53,7 @@ for j=1:length(idx_evaluated)
     % intersection is within the triangle or not.
     if is_intersect
         pipv = lpvo + (lpv1-lpvo)*line_param; % plane intersection position vector
-        [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv);
+        [plane_param,is_in_face] = get_plane_param_coefficient(ppv1,ppv2,ppv3,pipv,'double',0,0);
     else
         is_in_face = false;
     end
