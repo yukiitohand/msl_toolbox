@@ -37,7 +37,7 @@ elseif ~is_page && ~gpu
     plane_param = Mpinv*pipv_inp;
 end
 
-is_in_face = and( all(plane_param>=0,1), sum(plane_param,1)<=1 );
+is_in_face = and( all(plane_param>=0,1), [1,1]*plane_param<=1 );
 
 % Mtmp = [pdv1 pdv2] ./ ldv';
 % M = Mtmp(1:2,:)-Mtmp(2:3,:);
