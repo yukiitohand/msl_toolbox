@@ -71,8 +71,8 @@ classdef MASTCAMgroup_eye < dynamicprops
 
         end
         function [] = get_CAM_MDL_GEO(obj)
-            [imxy_direc_rov] = get_3d_pointing_from_CAHV(...
-                [obj.L_im,obj.S_im],obj.CAM_MDL,'gpu',0);
+            [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
+                [obj.L_im,obj.S_im],obj.CAM_MDL);
             cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
             cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
             imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.L_im*obj.S_im,3])';
