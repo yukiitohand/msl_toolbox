@@ -138,7 +138,7 @@ valid_lines = valid_lines(1:end-1);
 deml_geo = nan(3,2,S_dem,precision,gpu_varargin{:});
 deml_geo(2,:,:) = repmat(permute(dem_easting,[1,3,2]),[1,2,1]);
 
-figure;
+% figure;
 len_vl = length(valid_lines);
 for li = 1:len_vl % l = 27270 
     %tic;
@@ -255,9 +255,9 @@ for li = 1:len_vl % l = 27270
             end
         end
     end
-    imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
-    title(num2str(l));
-    drawnow;
+    % imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
+    % title(num2str(l));
+    % drawnow;
     % toc;
 end
 

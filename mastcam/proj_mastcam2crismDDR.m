@@ -61,6 +61,7 @@ ddr_imxy = DDRprj.imxy;
 L_ddr = size(DDRprj.imFOV_mask,1); S_ddr = size(DDRprj.imFOV_mask,2);
 
 cam_C_geo = reshape(mastcamdata_obj.CAM_MDL_GEO.C_geo,3,1);
+cam_A_geo = reshape(mastcamdata_obj.CAM_MDL_GEO.A_rov0,1,3);
 
 switch class(mastcamdata_obj)
     case 'MASTCAMdata'
@@ -121,9 +122,9 @@ ddr_geo(:,:,3) = (-1)*ddr_geo(:,:,3);
 ddr_geo = permute(ddr_geo,[3,1,2]);
 
 len_vl = length(valid_lines);
-figure;
+% figure;
 for li = 1:len_vl % l = 27270 
-    tic;
+    %tic;
     l = valid_lines(li);
     % l
     %==========================================================================
@@ -155,6 +156,7 @@ for li = 1:len_vl % l = 27270
                 ppv_geo_idxList = [...
                     s,s+1,  s,s+1;
                     l,  l,l+1,l+1];
+                isinFOV = ddr_imFOV_mask(l,s_ddr_imxy).*ddr_imFOV_mask(l,s_ddr_imxy+1).*ddr_imFOV_mask(l+1,s_ddr_imxy);
             elseif j==2
                 ppv1 = ddrl_imxy(:,1,s_ddr_imxy+1);
                 ppv2 = ddrl_imxy(:,2,s_ddr_imxy+1);
@@ -166,6 +168,7 @@ for li = 1:len_vl % l = 27270
                 ppv_geo_idxList = [...
                     s+1,s+1,  s,  s;
                       l,l+1,l+1,  l];
+                isinFOV = ddr_imFOV_mask(l,s_ddr_imxy+1).*ddr_imFOV_mask(l+1,s_ddr_imxy+1).*ddr_imFOV_mask(l+1,s_ddr_imxy);
             end
             ppv_xyList = [ppv1 ppv2 ppv3];
             ppv_geoList = [ppv1_geo ppv2_geo ppv3_geo ppv4_geo];
@@ -174,8 +177,7 @@ for li = 1:len_vl % l = 27270
                 ppv_xy_isnan = true;
             else
                 ppv_xy_isnan = false;
-            end
-
+            end 
             % test if the intersection is within the triangle or not.
             % first evaluate which one to use
             %if ppv_xy_isnan, cnd_xy = nan;
@@ -196,22 +198,28 @@ for li = 1:len_vl % l = 27270
                 idx_xy2d_list = idx_xy2d_list(:);
                 [plane_param,is_in_face] = get_plane_param_coefficient(...
                     ppv1,ppv2,ppv3,imxy_im_2d(:,idx_xy2d_list),precision,is_gpu,proc_page);
+                % [plane_param] = convert_sdtd2st(plane_param_im,...
+                %    ppv1_geo,ppv2_geo,ppv3_geo,cam_C_geo,cam_A_geo);
             else
-                % test line segment intersect with the plane determined by the
-                % three points
-                % if (l==414) && (s==209) && (j==2)
-                %     1;
-                % end
-                idx_xy2d_list = 1:(L_im*S_im);
-                [line_param,is_intersect] = line_plane_intersect_ldv(...
-                        cam_C_geo,imxy_direc_geo_2d,ppv1_geo,ppv2_geo,ppv3_geo,...
-                        is_gpu,proc_page);
-                is_right_dir = line_param>0;
-                pipv = cam_C_geo + imxy_direc_geo_2d(:,is_right_dir).*line_param(:,is_right_dir); % plane intersection position vector
-                plane_param = nan(2,L_im*S_im);
-                is_in_face = false(1,L_im*S_im);
-                [plane_param(:,is_right_dir),is_in_face(is_right_dir)] = get_plane_param_coefficient(...
-                    ppv1_geo,ppv2_geo,ppv3_geo,pipv,precision,is_gpu,proc_page);
+                if ~isinFOV
+                    is_in_face = false;
+                else
+                    % test line segment intersect with the plane determined by the
+                    % three points
+                    % if (l==414) && (s==209) && (j==2)
+                    %     1;
+                    % end
+                    idx_xy2d_list = 1:(L_im*S_im);
+                    [line_param,is_intersect] = line_plane_intersect_ldv(...
+                            cam_C_geo,imxy_direc_geo_2d,ppv1_geo,ppv2_geo,ppv3_geo,...
+                            is_gpu,proc_page);
+                    is_right_dir = line_param>0;
+                    pipv = cam_C_geo + imxy_direc_geo_2d(:,is_right_dir).*line_param(:,is_right_dir); % plane intersection position vector
+                    plane_param = nan(2,L_im*S_im);
+                    is_in_face = false(1,L_im*S_im);
+                    [plane_param(:,is_right_dir),is_in_face(is_right_dir)] = get_plane_param_coefficient(...
+                        ppv1_geo,ppv2_geo,ppv3_geo,pipv,precision,is_gpu,proc_page);
+                end
             end
             
             if any(is_in_face)
@@ -233,10 +241,10 @@ for li = 1:len_vl % l = 27270
             end
         end
     end
-    toc;
-    imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
-    title(num2str(l));
-    drawnow;
+    %toc;
+    % imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
+    % title(num2str(l));
+    % drawnow;
 end
 
 if is_gpu
