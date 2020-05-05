@@ -11,6 +11,9 @@ classdef MASTCAMdata < HSI
         CAM_MDL
         ROVER_NAV
         CAM_MDL_GEO
+        FILTER_NUMBER
+        RADIANCE_FACTOR
+        INSTRUMENT_ID
     end
     
     methods
@@ -24,7 +27,9 @@ classdef MASTCAMdata < HSI
             obj.RMC = get_rmc(obj);
             obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
             obj.ROVER_NAV  = obj.get_rover_nav();
-
+            obj.get_filter_number();
+            obj.get_instrument_id();
+            obj.get_radiance_factor();
         end
         function [cahvor_mdl] = get_cammera_model(obj)
             [cahvor_mdl] = mastcam_get_cahvor_model(obj.lbl);
@@ -38,8 +43,8 @@ classdef MASTCAMdata < HSI
         end
         
         function [] = get_CAM_MDL_GEO(obj)
-            [imxy_direc_rov] = get_3d_pointing_from_CAHV(...
-                [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL,'gpu',0);
+            [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
+                [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL);
             cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
             cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
             imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.hdr.lines*obj.hdr.samples,3])';
@@ -55,6 +60,71 @@ classdef MASTCAMdata < HSI
             obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
             obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
             
+        end
+        
+        function get_instrument_id(obj)
+            obj.INSTRUMENT_ID = obj.lbl.INSTRUMENT_ID;
+        end
+        
+        function get_filter_number(obj)
+            obj.FILTER_NUMBER = obj.lbl.GROUP_IMAGE_REQUEST_PARMS.FILTER_NUMBER;
+        end
+        
+        function get_radiance_factor(obj)
+            rf_raw = obj.lbl.GROUP_PROCESSING_PARMS.RADIANCE_SCALING_FACTOR;
+            switch obj.INSTRUMENT_ID
+                case 'MAST_LEFT'
+                    switch obj.FILTER_NUMBER
+                        case 0
+                            obj.RADIANCE_FACTOR = rf_raw;
+                        case 1
+                            obj.RADIANCE_FACTOR = rf_raw(2);
+                        case 2
+                            obj.RADIANCE_FACTOR = rf_raw(3);
+                        case 3
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 4
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 5
+                            % should be same for all elements
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 6
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                    end
+                    
+                case 'MAST_RIGHT'
+                    switch obj.FILTER_NUMBER
+                        case 0
+                            obj.RADIANCE_FACTOR = rf_raw;
+                        case 1
+                            obj.RADIANCE_FACTOR = rf_raw(2);
+                        case 2
+                            obj.RADIANCE_FACTOR = rf_raw(3);
+                        case 3
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 4
+                            % should be same for all elements
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 5
+                            % should be same for all elements
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                        case 6
+                            % should be same for all elements
+                            obj.RADIANCE_FACTOR = rf_raw(1);
+                    end
+            end
+        end
+        
+        function [img_iof] = get_IoF(obj)
+            if isempty(obj.img)
+                obj.readimg();
+            end
+            switch obj.FILTER_NUMBER
+                case 0
+                    img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* obj.img;
+                otherwise
+                    img_iof = obj.RADIANCE_FACTOR .* obj.img;
+            end
         end
         
             
