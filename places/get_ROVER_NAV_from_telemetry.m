@@ -44,7 +44,7 @@ pds_msl_imaging_URL = msl_env_vars.pds_msl_imaging_URL;
 
 mastcam_rootpath = joinPath(localrootDir,pds_msl_imaging_URL);
 
-dpath_tempfile = '/Users/yukiitoh/src/matlab/toolbox/msl_toolbox/';
+dpath_tempfile = '/Users/yukiitoh/src/matlab/toolbox/msl_toolbox/places';
 
 % get telemetry data
 msl_telemtery_matfname = 'MSLPLC_telemetry.mat';
