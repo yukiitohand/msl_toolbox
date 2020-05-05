@@ -86,8 +86,9 @@ classdef ROVER_NAV < handle
                     end
                 end
             end
-            get_ROVER_NAV_rot_mat(obj);
+            obj.get_ROVER_NAV_rot_mat();
         end
+
         function tf = eq(obj1,obj2)
             if (obj1.SITE == obj2.SITE) ...
                 && (obj1.DRIVE == obj2.DRIVE) ...
@@ -97,6 +98,7 @@ classdef ROVER_NAV < handle
                 tf = false;
             end
         end
+        
         function tf = ne(obj1,obj2)
             if (obj1.SITE ~= obj2.SITE) ...
                 || (obj1.DRIVE ~= obj2.DRIVE) ...
@@ -106,6 +108,7 @@ classdef ROVER_NAV < handle
                 tf = false;
             end
         end
+        
         function [] = get_ROVER_NAV_rot_mat(obj)
             obj.rot_mat = get_rot_mat(obj.ROLL,obj.PITCH,obj.YAW);
             obj.rot_mat_inv = get_rot_mat_inv(obj.ROLL,obj.PITCH,obj.YAW);
