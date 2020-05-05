@@ -1,5 +1,5 @@
 function [rover_nav] = get_ROVER_NAV_from_telemetry(site_id,drive_id,pose_id)
-% [rover_nav_coord] = get_ROVER_NAV_from_telemetry(site_id,drive_id,pose_id)
+% [rover_nav] = get_ROVER_NAV_from_telemetry(site_id,drive_id,pose_id)
 % Get rover coordinate from telemetry.csv for give site_id, drive_id,
 % pose_id
 % INPUTS:
@@ -53,7 +53,7 @@ if ~exist(msl_telemtery_matfname)
     lbl_telemetry = pds3lblread(joinPath(mastcam_rootpath,'MSLPLC_1XXX/DATA/LOCALIZATIONS','telemetry.lbl'));
     telemetry = msl_telemetryCSVread(joinPath(mastcam_rootpath,'MSLPLC_1XXX/DATA/LOCALIZATIONS','telemetry.csv'),lbl_telemetry);
     MSL_telemetry_FRAME = cat(1,{telemetry.FRAME})';
-    MSL_telemetry_FRAME = cellfun(@(x) sprintf('% 5s',x),MSL_telemetry_FRAME);
+    MSL_telemetry_FRAME = cellfun(@(x) sprintf('% 5s',x),MSL_telemetry_FRAME,'UniformOutput',0);
     MSL_telemetry_FRAME = cat(1,MSL_telemetry_FRAME{:});
     MSL_telemetry_SITE = cat(1,telemetry.SITE);
     MSL_telemetry_DRIVE = cat(1,telemetry.DRIVE);
