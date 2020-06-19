@@ -176,7 +176,9 @@ dem_easting_crop  = reshape(MSLDEMdata.hdr.x(s1:send),1,[]);
 demlp1_geo = nan(3,len_vs,precision,gpu_varargin{:});
 demlp1_geo(1,:) = dem_northing_crop(1);
 demlp1_geo(2,:) = dem_easting_crop;
-demlp1_geo(3,:) = demlp1_elev;
+demlp1_geo(3,:) = -demlp1_elev;
+
+%figure;
 
 for li = 1:(len_vl-1) % l = 27270 
     %tic;
@@ -280,15 +282,16 @@ for li = 1:(len_vl-1) % l = 27270
                 is_right_dir = line_param>0;
                 pipv = C_geo + PmC(:,is_right_dir).*line_param(:,is_right_dir); % plane intersection position vector
                 plane_param = nan(2,L_im*S_im); is_in_face = false(1,L_im*S_im);
-                [plane_param(:,is_right_dir),is_in_face(is_right_dir)] = get_plane_param_coefficient(...
-                    ppv1_geo,ppv2_geo,ppv3_geo,pipv,precision,is_gpu,proc_page);
+                [plane_param(:,is_right_dir),is_in_face(is_right_dir)] = get_plane_param_coefficient_3d(...
+                    ppv1_geo,ppv2_geo,ppv3_geo,pipv,precision);
             else
                 is_in_face = false;
             end
             if any(is_in_face)
                 if isinFOVd
                     [plane_param] = convert_sdtd2st(plane_param_im,...
-                        ppv1_geo,ppv2_geo,ppv3_geo,C_geo,A_geo);
+                         ppv1_geo,ppv2_geo,ppv3_geo,C_geo,A_geo);
+                    %plane_param = plane_param_im;
                 end
                 imxyz_geo_s = ppv1_geo + ([ppv2_geo ppv3_geo] - ppv1_geo)*plane_param;
                 imxyz_geo_range_s = sqrt(sum((imxyz_geo_s - C_geo).^2,1));
@@ -307,9 +310,10 @@ for li = 1:(len_vl-1) % l = 27270
                     msldem_nn(:,idxes_update) = ppv_geo_idxList(:,min_idx);
                 end
             end
+            %imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
         end
     end
-    % imagesc(reshape(imxyz_geo_range,[L_im,S_im]));
+    
     % title(num2str(l));
     % drawnow;
     % toc;
