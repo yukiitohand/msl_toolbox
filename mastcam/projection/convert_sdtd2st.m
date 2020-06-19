@@ -14,8 +14,7 @@ dv2 = A*(v2-C);
 dv3 = A*(v3-C);
 
 pp_num = plane_param ./ [dv2;dv3];
-s = [1 1]*pp_num;
-pp_denom = s + (1-s)./dv1;
+pp_denom = [1 1]*pp_num + (1-[1 1]*plane_param)./dv1;
 plane_param_2 = pp_num ./ pp_denom;
 
 end
