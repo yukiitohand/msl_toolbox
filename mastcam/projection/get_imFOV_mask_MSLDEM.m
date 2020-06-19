@@ -25,6 +25,7 @@ dem_easting    = reshape(MSLDEMdata.hdr.x,S_dem,1);
 
 dem_imFOV_mask_xyd = false(S_dem,L_dem);
 right_dir = false(S_dem,L_dem);
+dem_isnan = false(S_dem,L_dem);
 
 % Placeholder for line by line processing.
 deml_g = zeros(S_dem,3);
@@ -60,6 +61,7 @@ for l = 1:L_dem
     %==============================================================
     % demlm1_elev = deml_elev;
     deml_elev = demlp1_elev;
+    
     if l~=L_dem
         demlp1_elev = fread(MSLDEMdata.fid_img,S_dem,typeName,0,machine);
         % demlp1_elev = MSLDEMdata.lazyEnviReadl(l+1,0)';
@@ -67,6 +69,7 @@ for l = 1:L_dem
     else
         demlp1_elev = nan(S_dem,1);
     end
+    dem_isnan(:,l) = isnan(deml_elev);
     
     % converting to xyz
     deml_g(:,1) = dem_northing(l);
@@ -162,11 +165,11 @@ for l = 1:L_dem
                , [false; dem_imFOV_mask_xyd(1:S_dem-1,l+1)]) ...
             ,[dem_imFOV_mask_xyd(2:S_dem,l+1); false]);
     end
-    safeguard_mask(:,l) = and(~right_dir(:,l),...
+    safeguard_mask(:,l) = and(and(~right_dir(:,l),...
         or(dem_imFOV_mask_xyd_l ...
            , or(imgnd_FOV_mask_xyd_lm1,imgnd_FOV_mask_xyd_lp1) ...
            )...
-        );
+        ),~dem_isnan(:,l));
         
 end
 
