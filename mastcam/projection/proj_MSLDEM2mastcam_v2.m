@@ -25,20 +25,6 @@ function [MSLDEMprj] = proj_MSLDEM2mastcam_v2(MSLDEMdata,mastcamdata_obj,varargi
 %      not guaranteed. Size depend on FOV. The rectangle that minimally
 %      encloses the FOV.
 
-% PROC_MODE = 'naive';
-% if (rem(length(varargin),2)==1)
-%     error('Optional parameters should always go by pairs');
-% else
-%     for i=1:2:(length(varargin)-1)
-%         switch upper(varargin{i})
-%             case 'PROC_MODE'
-%                 PROC_MODE = varargin{i+1};
-%             otherwise
-%                 error('Unrecognized option: %s',varargin{i});
-%         end
-%     end
-% end
-
 %% GET CAMERA, ROVER_NAV, and Image size information
 
 cmmdl = mastcamdata_obj.CAM_MDL;
