@@ -12,8 +12,8 @@ xloc = (easting-dem_easting(1))/MSLDEMdata.hdr.map_info.dx + 1;
 l_tar = floor(yloc);
 s_tar = floor(xloc);
 
-deml_elevation  = MSLDEMdata.lazyEnviReadl(l_tar,0);
-demlp1_elevation = MSLDEMdata.lazyEnviReadl(l_tar+1,0);
+deml_elevation  = double(MSLDEMdata.lazyEnviReadl(l_tar,0));
+demlp1_elevation = double(MSLDEMdata.lazyEnviReadl(l_tar+1,0));
 elevation = cat(1, deml_elevation, demlp1_elevation);
 elevation(elevation==MSLDEMdata.hdr.data_ignore_value) = nan;
 elevation = elevation(:,[s_tar s_tar+1]);
