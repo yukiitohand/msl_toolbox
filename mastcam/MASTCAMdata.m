@@ -18,7 +18,24 @@ classdef MASTCAMdata < HSI
     
     methods
         function obj = MASTCAMdata(basename,dirpath,varargin)
-            obj@HSI(basename,dirpath,varargin{:});
+            
+            basename_view_csv = 'localized_interp';
+            varargin_rmidx = [];
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for i=1:2:(length(varargin)-1)
+                    switch upper(varargin{i})
+                        case 'BASENAME_VIEW_CSV'
+                            basename_view_csv = varargin{i+1};
+                            varargin_rmidx = [varargin_rmidx i i+1];
+                        otherwise
+                            error('Unrecognized option: %s',varargin{i});
+                    end
+                end
+            end
+            varargin_HSI = varargin(setdiff(1:length(varargin),varargin_rmidx));
+            obj@HSI(basename,dirpath,varargin_HSI{:});
             obj.lblpath = joinPath(dirpath,[basename '.lbl']);
             obj.lbl = pds3lblread(obj.lblpath);
             obj.hdr = mastcam_extract_imghdr_from_lbl(obj.lbl);
@@ -26,7 +43,7 @@ classdef MASTCAMdata < HSI
             obj.CAM_MDL = get_cammera_model(obj);
             obj.RMC = get_rmc(obj);
             obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
-            obj.ROVER_NAV  = obj.get_rover_nav();
+            obj.ROVER_NAV  = obj.get_rover_nav('BASENAME_VIEW_CSV',basename_view_csv);
             obj.get_filter_number();
             obj.get_instrument_id();
             obj.get_radiance_factor();
@@ -37,9 +54,9 @@ classdef MASTCAMdata < HSI
         function [rmc_mdl] = get_rmc(obj)
             [rmc_mdl] = mastcam_get_RMC(obj.lbl);
         end
-        function [rover_nav] = get_rover_nav(obj)
-            [rover_nav] = get_ROVER_NAV_from_telemetry(...
-                obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE);
+        function [rover_nav] = get_rover_nav(obj,varargin)
+            [rover_nav] = get_ROVER_NAV_from_mslplc_view_csv(...
+                obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
         end
         
         function [] = get_CAM_MDL_GEO(obj)
