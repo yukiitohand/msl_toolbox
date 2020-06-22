@@ -43,7 +43,6 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
 {
     int32_T c,l;
     int32_T msldemc_samplesm1,msldemc_linesm1;
-    int16_T sxy;
     long skip_pri;
     long skip_l, skip_r;
     float *elevl;
@@ -94,6 +93,7 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
             apmc = apmcx + apmcy + apmcz;
             if(apmc<0){
                 if(l==0){
+                    printf("a\n");
                     if(c==0){
                         if(msldemc_imFOVmaskd[c+1][l] || msldemc_imFOVmaskd[c][l+1] || msldemc_imFOVmaskd[c+1][l+1])
                             msldemc_safeguard_mask[c][l] = 1;
