@@ -1,4 +1,4 @@
-function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj)
+function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
 % proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
 %   evaluate FOV of an image on an ortho-georeferenced image using a
 %   georeferenced DEM image.
@@ -41,6 +41,20 @@ function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam
 
 cmmdl = mastcamdata_obj.CAM_MDL;
 rover_nav_coord = mastcamdata_obj.ROVER_NAV;
+cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
+cmmdl_geo.get_image_plane_unit_vectors();
+if (rem(length(varargin),2)==1)
+    error('Optional parameters should always go by pairs');
+else
+    for i=1:2:(length(varargin)-1)
+        switch upper(varargin{i})
+            case 'CAMERA_MODEL_GEO'
+                cmmdl_geo = varargin{i+1};
+            otherwise
+                error('Unrecognized option: %s',varargin{i});
+        end
+    end
+end
 
 %-------------------------------------------------------------------------%
 % Get the size of the mastcam image
@@ -55,8 +69,7 @@ switch class(mastcamdata_obj)
 end
 
 %% First compute dem_imFOV_mask
-cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
-cmmdl_geo.get_image_plane_unit_vectors();
+
 
 tic; [msldem_imFOVmask] = get_imFOVmask_MSLDEM_v2_mex(...
     MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...

@@ -67,13 +67,13 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             obj.msldemc_hdr_imxy = MSLDEMprj.hdr_imxy;
         end
         
-        function proj_MSLDEM2mastcam(obj)
-            [obj.msldemc_imFOVmask,obj.msldemc_imxy,obj.msldemc_hdr_imxy] = proj_MSLDEM2mastcam_v3(obj.MSLDEMdata,obj.MASTCAMdata);
+        function proj_MSLDEM2mastcam(obj,varargin)
+            [obj.msldemc_imFOVmask,obj.msldemc_imxy,obj.msldemc_hdr_imxy] = proj_MSLDEM2mastcam_v3(obj.MSLDEMdata,obj.MASTCAMdata,varargin{:});
             
         end
         
-        function proj_mastcam2MSLDEM(obj)
-            proj_mastcam2MSLDEM_v5_mexw(obj.MASTCAMdata,obj.MSLDEMdata,obj);
+        function proj_mastcam2MSLDEM(obj,varargin)
+            proj_mastcam2MSLDEM_v5_mexw(obj.MASTCAMdata,obj.MSLDEMdata,obj,varargin{:});
         end
         
         function assess_occlusion(obj)
