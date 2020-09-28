@@ -22,6 +22,8 @@ volid_ident_support(19).volume_id = 'MSLMST_0019';
 volid_ident_support(20).volume_id = 'MSLMST_0020';
 volid_ident_support(21).volume_id = 'MSLMST_0021';
 volid_ident_support(22).volume_id = 'MSLMST_0022';
+volid_ident_support(23).volume_id = 'MSLMST_0023';
+volid_ident_support(24).volume_id = 'MSLMST_0024';
 
 volid_ident_support(1).sol_range  = [0, 88];
 volid_ident_support(2).sol_range  = [25, 179];
@@ -45,5 +47,7 @@ volid_ident_support(19).sol_range = [1688, 2127];
 volid_ident_support(20).sol_range = [1885, 2223];
 volid_ident_support(21).sol_range = [1902, 2358];
 volid_ident_support(22).sol_range = [2287, 2482];
+volid_ident_support(23).sol_range = [2453, 2579];
+volid_ident_support(24).sol_range = [2582, 2702];
 
 end
