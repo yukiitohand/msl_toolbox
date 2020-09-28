@@ -48,6 +48,7 @@ dirskip = 1;
 dwld = 0;
 html_file = '';
 outfile = '';
+cache_update = false;
 
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
@@ -70,9 +71,11 @@ else
                 dwld = varargin{i+1};
             case 'OUT_FILE'
                 outfile = varargin{i+1};
+            case 'CACHE_UPDATE'
+                cache_update = varargin{i+1};
             otherwise
                 % Something wrong with the parameter string
-                error(['Unrecognized option: ''' varargin{i} '''']);
+                error('Unrecognized option: %s.',varargin{i});
         end
     end
 end
@@ -169,34 +172,45 @@ dirs = []; files = [];
 
 errflg=0;
 if isempty(html_file)
-    if verLessThan('matlab','8.4')
-        [html,status] = urlread([protocol '://' url_remote]);
-        if ~status
-    %         fprintf('URL: "%s" is invalid.\n',url);
-    %         fprintf('crism_pds_archiveURL: "%s"\n',crism_pds_archiveURL); 
-    %         fprintf('subdir: "%s"\n',subdir);
-    %         fprintf('Please input a valid combination of "crism_pds_archiveURL" and "subdir".\n');
-            warning('URL: "%s" is invalid.\n',url_remote);
-            errflg=1;
-        end
+    html_cachefilepath = joinPath(localTargetDir,'index.html');
+    if ~cache_update && exist(html_cachefilepath,'file')
+        html = fileread(html_cachefilepath);
     else
-        ntrial = 1; % number of trial to retrieve the url
-        while ~errflg
-            try
-                options = weboptions('ContentType','text','Timeout',60);
-                http_url = [protocol '://' url_remote];
-                [html] = webread(http_url,options);
-                break;
-            catch
-                if ntrial<3
-                    ntrial=ntrial+1;
-                else
-                    fprintf(2,'%s://%s does not exist.',protocol,url_remote);
-                    errflg=1;
+        if verLessThan('matlab','8.4')
+            [html,status] = urlread([protocol '://' url_remote]);
+            if ~status
+        %         fprintf('URL: "%s" is invalid.\n',url);
+        %         fprintf('crism_pds_archiveURL: "%s"\n',crism_pds_archiveURL); 
+        %         fprintf('subdir: "%s"\n',subdir);
+        %         fprintf('Please input a valid combination of "crism_pds_archiveURL" and "subdir".\n');
+                warning('URL: "%s" is invalid.\n',url_remote);
+                errflg=1;
+            end
+        else
+            ntrial = 1; % number of trial to retrieve the url
+            while ~errflg
+                try
+                    options = weboptions('ContentType','text','Timeout',60);
+                    http_url = [protocol '://' url_remote];
+                    [html] = webread(http_url,options);
+                    break;
+                catch
+                    if ntrial<3
+                        ntrial=ntrial+1;
+                    else
+                        fprintf(2,'%s://%s does not exist.',protocol,url_remote);
+                        errflg=1;
+                    end
                 end
             end
         end
+        if ~exist(localTargetDir,'dir'), mkdir(localTargetDir); end
+        fid_index = fopen(html_cachefilepath,'w');
+        fwrite(fid_index,html);
+        fclose(fid_index);
+        
     end
+        
 else
     if exist(html_file,'file')
         html = fileread(html_file);
