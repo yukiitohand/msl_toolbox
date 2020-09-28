@@ -1,4 +1,4 @@
-function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
+function [msldemc_imFOVmask,msldemc_imFOVxy,msldemc_imFOVhdr] = proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
 % proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
 %   evaluate FOV of an image on an ortho-georeferenced image using a
 %   georeferenced DEM image.
@@ -9,7 +9,7 @@ function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam
 %      Mosaics/MSL_Gale_DEM_Mosaic_10m
 %    mastcamdata_obj: MASTCAMdata or MASTCAMgroup_eye class object
 %  OUTPUTS
-%   msldemc_imFOV_mask: int8 image, [L_demc x S_demc]
+%   msldemc_imFOVmask: int8 image, [L_demc x S_demc]
 %      2 if potentially in the FOV that have valid xy values
 %      1 if potentially in the FOV but invalid xy values (in the wrong
 %      direction)
@@ -18,7 +18,7 @@ function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam
 %      between -200 and 200+image_edge. The values outside of this are
 %      considered to be inaccurate or invalid. In addition, pixels within
 %      the distance 50m are considered to be in FOV, just in case.
-%   msldemc_imxy: [L_demc x S_demc x 2] 
+%   msldemc_imFOVxy: [L_demc x S_demc x 2] 
 %      page 1 is the x coordinate in the image frame,
 %      page 2 is the y coordinate in the image frame.
 %      x and y coordinate values outside of the range between -200 and 
@@ -26,14 +26,13 @@ function [msldemc_imFOVmask,msldemc_imxy,msldemc_hdr_imxy] = proj_MSLDEM2mastcam
 %      this is far away from the calibration range, therefore accuracy is
 %      not guaranteed. Size depend on FOV. The rectangle that minimally
 %      encloses the FOV.
-%   msldemc_hdr_imxy: struct having the fields below
-%      msldemc_hdr_imxy.interleave = 'bil';
-%      msldemc_hdr_imxy.bands = 2;
-%      msldemc_hdr_imxy.lines = len_vl;
-%      msldemc_hdr_imxy.samples = len_vs;
-%      msldemc_hdr_imxy.band_names = {'imx','imy'};
-%      msldemc_hdr_imxy.line_offset = line_offset;
-%      msldemc_hdr_imxy.sample_offset = sample_offset;
+%   msldemc_imFOVhdr: struct having the fields below
+%      msldemc_imFOVhdr.lines = len_vl;
+%      msldemc_imFOVhdr.samples = len_vs;
+%      msldemc_imFOVhdr.line_offset = line_offset;
+%      msldemc_imFOVhdr.sample_offset = sample_offset;
+%      msldemc_imFOVhdr.y = msldemc_northing;
+%      msldemc_imFOVhdr.x = msldemc_easting;
 %      
 
 
@@ -43,11 +42,15 @@ cmmdl = mastcamdata_obj.CAM_MDL;
 rover_nav_coord = mastcamdata_obj.ROVER_NAV;
 cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
 cmmdl_geo.get_image_plane_unit_vectors();
+
+coef_mrgn = 2.1;
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
     for i=1:2:(length(varargin)-1)
         switch upper(varargin{i})
+            case 'COEF_MARGIN'
+                coef_mrgn = varargin{i+1};
             case 'CAMERA_MODEL_GEO'
                 cmmdl_geo = varargin{i+1};
             otherwise
@@ -73,7 +76,7 @@ end
 
 tic; [msldem_imFOVmask] = get_imFOVmask_MSLDEM_v2_mex(...
     MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...
-    S_im,L_im,cmmdl_geo); toc;
+    S_im,L_im,cmmdl_geo,coef_mrgn); toc;
 
 % [dem_imFOV_mask,dem_imFOV_mask_xyd] = get_imFOV_mask_MSLDEM(cmmdl_geo,...
 %      [L_im,S_im],MSLDEMdata);
@@ -92,9 +95,7 @@ line_offset = lrnge(1)-1;
 sample_offset = srnge(1)-1;
 
 % cropping the image for the computation of sageguarding
-msldemc_hdr_sg = MSLDEMdata.hdr;
-msldemc_hdr_sg.interleave = 'bil';
-msldemc_hdr_sg.bands = 2;
+msldemc_hdr_sg = [];
 msldemc_hdr_sg.lines = len_vl;
 msldemc_hdr_sg.samples = len_vs;
 msldemc_hdr_sg.line_offset = line_offset;
@@ -132,26 +133,25 @@ len_vs = srnge(2)-srnge(1)+1;
 line_offset = lrnge(1)-1;
 sample_offset = srnge(1)-1;
 
-msldemc_hdr_imxy = MSLDEMdata.hdr;
-msldemc_hdr_imxy.interleave = 'bil';
-msldemc_hdr_imxy.bands = 2;
-msldemc_hdr_imxy.lines = len_vl;
-msldemc_hdr_imxy.samples = len_vs;
-msldemc_hdr_imxy.band_names = {'imx','imy'};
-msldemc_hdr_imxy.line_offset = line_offset + msldemc_hdr_sg.line_offset;
-msldemc_hdr_imxy.sample_offset = sample_offset + msldemc_hdr_sg.sample_offset;
-
 msldemc_northing = msldemc_northing(lrnge(1):lrnge(2));
 msldemc_easting  = msldemc_easting(srnge(1):srnge(2));
+
+msldemc_imFOVhdr = [];
+msldemc_imFOVhdr.lines   = len_vl;
+msldemc_imFOVhdr.samples = len_vs;
+msldemc_imFOVhdr.line_offset   = line_offset + msldemc_hdr_sg.line_offset;
+msldemc_imFOVhdr.sample_offset = sample_offset + msldemc_hdr_sg.sample_offset;
+msldemc_imFOVhdr.y = msldemc_northing;
+msldemc_imFOVhdr.x = msldemc_easting;
 
 msldemc_imFOVmask = msldemc_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
 tic; [dem_imx,dem_imy] = get_imxy_MSLDEM_mex(...
-    MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_imxy,...
+    MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_imFOVhdr,...
     msldemc_northing,msldemc_easting,...
     msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
 
-msldemc_imxy = cat(3,dem_imx,dem_imy);
+msldemc_imFOVxy = cat(3,dem_imx,dem_imy);
 
 
 %% Summary
