@@ -14,6 +14,8 @@ classdef MASTCAMdata < HSI
         FILTER_NUMBER
         RADIANCE_FACTOR
         INSTRUMENT_ID
+        L_im
+        S_im
     end
     
     methods
@@ -47,6 +49,8 @@ classdef MASTCAMdata < HSI
             obj.get_filter_number();
             obj.get_instrument_id();
             obj.get_radiance_factor();
+            obj.L_im = obj.hdr.lines;
+            obj.S_im = obj.hdr.samples;
         end
         function [cahvor_mdl] = get_cammera_model(obj)
             [cahvor_mdl] = mastcam_get_cahvor_model(obj.lbl);
@@ -144,7 +148,12 @@ classdef MASTCAMdata < HSI
             end
         end
         
-            
+        function delete(obj)
+            delete(obj.CAM_MDL);
+            delete(obj.CAM_MDL_GEO);
+            delete(obj.ROVER_NAV);
+            delete(obj.RMC);
+        end   
     end
 end
 
