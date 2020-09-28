@@ -148,13 +148,13 @@ if isempty(basename)
             fprintf('no image is selected.\n');
         elseif size(counter_unique,1)>1
             fprintf('Selected images\n');
-            fprintf('(site, drive, pose, mc): PRODUCT ID\n');
             for i=1:size(counter_unique,1)
                 match_idx = find(ic_cl==i);
-                fprintf('(% 4d, % 5d, % 4d, %2d): ', counter_unique(i,1),...
+                fprintf('(site, drive, pose, mc): PRODUCT ID\n');
+                fprintf('(% 4d, % 5d, % 4d, %2d):\n', counter_unique(i,1),...
                     counter_unique(i,2),counter_unique(i,3),counter_unique(i,4));
                 for im = match_idx
-                    fprintf('%s,',RDRINDEX_matched2(im).PRODUCT_ID);
+                    fprintf('%s\n',RDRINDEX_matched2(im).PRODUCT_ID);
                 end
                 fprintf('\n');
             end
