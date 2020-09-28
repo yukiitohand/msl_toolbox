@@ -10,7 +10,7 @@
  * 4 S_im                 int
  * 5 L_im                 int
  * 6 cammdl               CAHVOR model class
- * 
+ * 7 coef_mrgn            coefficient for the margin
  * 
  * 
  * OUTPUTS:
@@ -38,7 +38,7 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         int32_T S_im, int32_T L_im, 
         double *cam_C, double *cam_A, double *cam_H, double *cam_V,
         double *cam_Hd, double *cam_Vd, double hc, double hs, double vc, double vs,
-        int8_T **msldem_imFOVmaskd)
+        int8_T **msldem_imFOVmaskd, double coef_mrgn)
 {
     int32_T c,l;
     
@@ -232,8 +232,8 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                 //    printf("resolz = %f\n",resolz);
                 //}
                  
-                mrgnh = hs/apmc * (resolhxy + Hd2_abs * resolz);
-                mrgnv = vs/apmc * (resolvxy + Vd2_abs * resolz);
+                mrgnh = coef_mrgn*hs/apmc * (resolhxy + Hd2_abs * resolz);
+                mrgnv = coef_mrgn*vs/apmc * (resolvxy + Vd2_abs * resolz);
                 
                 if (x_im>-0.5-mrgnh && x_im<S_imm05+mrgnh && 
                         y_im>-0.5-mrgnv && y_im<L_imm05+mrgnv){
@@ -338,6 +338,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *cam_C, *cam_A, *cam_H, *cam_V, *cam_Hd, *cam_Vd;
     double cam_hc,cam_vc,cam_hs,cam_vs;
     
+    double coef_mrgn;
+    
     int32_T si,li;
     int32_T msldem_samples, msldem_lines;
 
@@ -425,7 +427,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     cam_vs = mxGetScalar(cam_vs_mxard);
     
     // printf("cam_Hd %f %f %f\n",cam_Hd[0],cam_Hd[1],cam_Hd[2]);
-    
+    coef_mrgn = mxGetScalar(prhs[7]);
     
     
     
@@ -455,7 +457,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         (int32_T) S_im, (int32_T) L_im, 
         cam_C, cam_A, cam_H, cam_V, cam_Hd, cam_Vd,
         cam_hc, cam_hs, cam_vc, cam_vs,
-        msldem_imFOVmaskd);
+        msldem_imFOVmaskd,coef_mrgn);
     
     /* free memories */
     mxFree(msldem_imgpath);
