@@ -31,6 +31,11 @@
  * 6  im_range       [L_im x S_im]       Double / Float
  * 7  im_nnx         [L_im x S_im]   Integer
  * 8  im_nny         [L_im x S_im]   Integer
+ * 9  im_cosemi      [L_im x S_im]   Double - cosine of emmission angles
+ * 10 im_pnx         [L_im x S_im]   x of surface plane normal vector 
+ * 11 im_pny         [L_im x S_im]   y of surface plane normal vector
+ * 12 im_pnz         [L_im x S_im]   z of surface plane normal vector
+ * 13 im_pc          [L_im x S_im]   surface plane constant
  * 
  *
  *
@@ -54,6 +59,13 @@ double get_sqr_dst(double ux,double uy,double uz,double vx,double vy,double vz)
     return dst;
 }
 
+double get_sqr_dst_2d(double ux,double uy,double vx,double vy)
+{
+    double dst;
+    dst = pow(ux-vx,2) + pow(uy-vy,2);
+    return dst;
+}
+
 /* main computation routine */
 void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header, 
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
@@ -65,7 +77,9 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
         double **PmCx, double **PmCy, double **PmCz,
         double **im_north, double **im_east, double **im_elev,
         int32_T **im_refx, int32_T **im_refy, int32_T **im_refs,
-        double **im_range, int32_T **im_nnx, int32_T **im_nny)
+        double **im_range, int32_T **im_nnx, int32_T **im_nny,
+        double **im_cosemi, double **im_pnx, double **im_pny, double **im_pnz,
+        double **im_pc)
 {
     int32_T c,l;
     int32_T L_demcm1,S_demcm1;
@@ -102,7 +116,8 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
     double pmcx_xiyi,pmcy_xiyi,pmcz_xiyi;
     
     double pnx,pny,pnz; /* Plane Normal vectors */
-    // double pc; /* Plane Constant */
+    double pn_len;
+    double pc; /* Plane Constant */
     double lprm; /* line parameters */
     
     
@@ -205,7 +220,26 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                         Minv[1][0] = -pdv1y/detM;
                         Minv[1][1] = pdv1x/detM;
                         
-                        
+                        // vector in the 3d domain for angle calculation
+                        // 2020.09.11 by Yuki.
+                        pdv1x = ppv2gx - ppv1gx;
+                        pdv1y = ppv2gy - ppv1gy;
+                        pdv1z = ppv2gz - ppv1gz;
+                        pdv2x = ppv3gx - ppv1gx;
+                        pdv2y = ppv3gy - ppv1gy;
+                        pdv2z = ppv3gz - ppv1gz;
+                        pnx = pdv1y*pdv2z - pdv1z*pdv2y;
+                        pny = pdv1z*pdv2x - pdv1x*pdv2z;
+                        pnz = pdv1x*pdv2y - pdv1y*pdv2x;
+                        // Normalize the plane normal vector.
+                        pn_len = sqrt(pnx*pnx+pny*pny+pnz*pnz);
+                        pnx /= pn_len; pny /= pn_len; pnz /= pn_len;
+                        // If the normal vector is looking up, then flip its sign.
+                        // note that z is positive in the downward direction.
+                        if(pnz<0){
+                            pnx = -pnx; pny = -pny; pnz = -pnz;
+                        }
+                        pc = pnx * ppv1gx + pny * ppv1gy + pnz * ppv1gz;
                         
                         // parameters for convert pprm in the image 
                         // plane into those for polygonal surface.
@@ -282,6 +316,17 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                                         im_refx[xi][yi]  = (int32_T) c;
                                         im_refy[xi][yi]  = (int32_T) l;
                                         im_refs[xi][yi]  = (int32_T) sxy;
+                                        
+                                        // provide angle information
+                                        im_pnx[xi][yi] = pnx;
+                                        im_pny[xi][yi] = pny;
+                                        im_pnz[xi][yi] = pnz;
+                                        im_pc[xi][yi] = pc;
+                                        im_cosemi[xi][yi] = PmCx[xi][yi]*pnx+PmCy[xi][yi]*pny+PmCz[xi][yi]*pnz;
+                                        /* Note that plane normal vector is looking upward, so it is 
+                                         * necessary to take the angle with the negative normal vector to
+                                         * obtain the emission angle.
+                                         */
                                         //printf("isinFOVd=%d\n",isinFOVd);
 
                                         // evaluate nearest neighbor
@@ -289,10 +334,14 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                                         //dst_ppv[1] = pow(pipvgx-ppv2gx,2)+pow(pipvgy-ppv2gy,2)+pow(pipvgz-ppv2gz,2);
                                         //dst_ppv[2] = pow(pipvgx-ppv3gx,2)+pow(pipvgy-ppv3gy,2)+pow(pipvgz-ppv3gz,2);
                                         //dst_ppv[3] = pow(pipvgx-ppv4gx,2)+pow(pipvgy-ppv4gy,2)+pow(pipvgz-ppv4gz,2);
-                                        dst_ppv[0] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv1gx,ppv1gy,ppv1gz);
-                                        dst_ppv[1] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv2gx,ppv2gy,ppv2gz);
-                                        dst_ppv[2] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv3gx,ppv3gy,ppv3gz);
-                                        dst_ppv[3] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv4gx,ppv4gy,ppv4gz);
+                                        // dst_ppv[0] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv1gx,ppv1gy,ppv1gz);
+                                        // dst_ppv[1] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv2gx,ppv2gy,ppv2gz);
+                                        // dst_ppv[2] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv3gx,ppv3gy,ppv3gz);
+                                        // dst_ppv[3] = get_sqr_dst(pipvgx,pipvgy,pipvgz,ppv4gx,ppv4gy,ppv4gz);
+                                        dst_ppv[0] = get_sqr_dst_2d(pipvgx,pipvgy,ppv1gx,ppv1gy);
+                                        dst_ppv[1] = get_sqr_dst_2d(pipvgx,pipvgy,ppv2gx,ppv2gy);
+                                        dst_ppv[2] = get_sqr_dst_2d(pipvgx,pipvgy,ppv3gx,ppv3gy);
+                                        dst_ppv[3] = get_sqr_dst_2d(pipvgx,pipvgy,ppv4gx,ppv4gy);
                                         //printf("isinFOVd=%d\n",isinFOVd);
                                         dst_nn = dst_ppv[0]; di_dst_min = 0;
                                         for(di=1;di<4;di++){
@@ -504,6 +553,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double **im_range;
     int32_T **im_nnx;
     int32_T **im_nny;
+    double **im_cosemi;
+    double **im_pnx;
+    double **im_pny;
+    double **im_pnz;
+    double **im_pc;
     
     mwIndex si,li;
     mwSize msldemc_samples, msldemc_lines;
@@ -603,6 +657,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[8] = mxCreateNumericMatrix(L_im,S_im,mxINT32_CLASS,mxREAL);
     im_nny = set_mxInt32Matrix(plhs[8]);
     
+    /* OUTPUT 9 emission angle */
+    plhs[9] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
+    im_cosemi = set_mxDoubleMatrix(plhs[9]);
+    
+    /* OUTPUT 10/11/12 surface plane normal vectors */
+    plhs[10] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
+    im_pnx = set_mxDoubleMatrix(plhs[10]);
+    plhs[11] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
+    im_pny = set_mxDoubleMatrix(plhs[11]);
+    plhs[12] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
+    im_pnz = set_mxDoubleMatrix(plhs[12]);
+    
+    /* OUTPUT 13/14/15 surface plane normal vectors */
+    plhs[13] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
+    im_pc = set_mxDoubleMatrix(plhs[13]);
+    
     // Initialize matrices
     for(si=0;si<S_im;si++){
         for(li=0;li<L_im;li++){
@@ -615,7 +685,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
             im_refs[si][li] = -1;
             im_nnx[si][li] = -1;
             im_nny[si][li] = -1;
-            
+            im_cosemi[si][li] = NAN;
+            im_pnx[si][li] = NAN;
+            im_pny[si][li] = NAN;
+            im_pnz[si][li] = NAN;
+            im_pc[si][li] = NAN; 
         }
     }
     
@@ -630,7 +704,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
        msldemc_imFOVmask, (int32_T) S_im, (int32_T) L_im, cam_C, cam_A,
        PmCx,PmCy,PmCz, im_north, im_east, im_elev,
        im_refx, im_refy, im_refs,
-       im_range, im_nnx, im_nny);
+       im_range, im_nnx, im_nny,
+       im_cosemi,im_pnx,im_pny,im_pnz,im_pc);
     
     /* free memories */
     mxFree(msldem_imgpath);
@@ -649,5 +724,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mxFree(im_range);
     mxFree(im_nnx);
     mxFree(im_nny);
+    mxFree(im_cosemi);
+    mxFree(im_pnx);
+    mxFree(im_pny);
+    mxFree(im_pnz);
+    mxFree(im_pc);
     
 }
