@@ -26,6 +26,7 @@ classdef MASTCAMgroup_eye < dynamicprops
         CAM_MDL_GEO % CAMERA MODEL in a geographic coordinate system
         L_im
         S_im
+        addedProps
     end
     
     methods
@@ -64,9 +65,14 @@ classdef MASTCAMgroup_eye < dynamicprops
             if ~isprop(obj,mst_obj.prop.product_type)
                 addprop(obj,mst_obj.prop.product_type);
                 obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) = mst_obj;
+                obj.addedProps = [obj.addedProps {mst_obj.prop.product_type}];
             else
-                obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code)...
-                    = [obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) mst_obj];
+                if isfield(obj.(mst_obj.prop.product_type),mst_obj.prop.data_proc_code)
+                    obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code)...
+                        = [obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) mst_obj];
+                else
+                    obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) = mst_obj;
+                end
             end
 
         end
@@ -87,6 +93,32 @@ classdef MASTCAMgroup_eye < dynamicprops
             obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo';
             obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
             obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
+            
+        end
+        
+        function delete(obj)
+            if ~isempty(obj.RMC)
+                delete(obj.RMC);
+            end
+            if ~isempty(obj.ROVER_NAV)
+                delete(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.CAM_MDL)
+                delete(obj.CAM_MDL);
+            end
+            % if ~isempty(obj.CAM_MDL_GEO) && isvalid(obj.CAM_MDL_GEO)
+            %     delete(obj.CAM_MDL_GEO);
+            % end
+            for i=1:length(obj.addedProps)
+                propi = obj.addedProps{i};
+                fldnms = fieldnames(obj.(propi));
+                for j=1:length(fldnms)
+                    fldnm = fldnms{j};
+                    for k=1:length(obj.(propi).(fldnm))
+                        delete(obj.(propi).(fldnm)(k));
+                    end
+                end
+            end
             
         end
         

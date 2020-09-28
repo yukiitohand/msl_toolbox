@@ -52,10 +52,19 @@ classdef MASTCAMgroup < handle
             obj.(mst_eye).append(mst_obj);
         end
         
-        % function delete(obj)
-        %     delete(obj.L);
-        %     delete(obj.R);
-        %     delete(obj);
-        % end
+        function delete(obj)
+            if ~isempty(obj.L)
+                delete(obj.L);
+            end
+            if ~isempty(obj.R)
+                delete(obj.R);
+            end
+            if ~isempty(obj.RMC)
+                delete(obj.RMC);
+            end
+            if ~isempty(obj.ROVER_NAV)
+                delete(obj.ROVER_NAV);
+            end
+        end
     end
 end
