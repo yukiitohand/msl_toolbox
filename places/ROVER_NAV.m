@@ -4,10 +4,10 @@ classdef ROVER_NAV < handle
     %   
     
     properties
-        FRAME = -1
-        SITE  = -1 % Site ID
-        DRIVE = -1 % Drive ID
-        POSE  = -1 % Pose ID
+        FRAME
+        SITE       % Site ID
+        DRIVE      % Drive ID
+        POSE       % Pose ID
         LANDING_X
         LANDING_Y
         LANDING_Z
@@ -32,6 +32,7 @@ classdef ROVER_NAV < handle
     
     methods
         function obj = ROVER_NAV(varargin)
+            obj.FRAME = -1; obj.SITE = -1; obj.DRIVE = -1; obj.POSE = -1;
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
             else
