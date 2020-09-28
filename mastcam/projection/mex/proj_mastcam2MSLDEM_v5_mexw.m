@@ -22,7 +22,7 @@ function proj_mastcam2MSLDEM_v5_mexw(mastcamdata_obj,MSLDEMdata,MSTprj,varargin)
 %     mastcam_msldemc_nn: [L_im x S_im x 2]
 %       nearest neighbor pixels in DDR image. The first page is the sample
 %       indices and the second is the line indexes.
-%     msldemc_imFOVmask_nh: [L_demc x S_demc x 1]
+%     msldemc_imFOVmask_ctrnn: [L_demc x S_demc x 1]
 %       Boolean, imFOV_mask with hidden points are removed.
 %    
 
@@ -77,10 +77,10 @@ PmC = reshape(PmC',[L_im,S_im,3]);
 %-------------------------------------------------------------------------%
 % Get MSL DEM information
 %-------------------------------------------------------------------------%
-l1 = MSTprj.msldemc_hdr_imxy.line_offset+1;
-lend = MSTprj.msldemc_hdr_imxy.line_offset+MSTprj.msldemc_hdr_imxy.lines;
-s1 = MSTprj.msldemc_hdr_imxy.sample_offset+1;
-send = MSTprj.msldemc_hdr_imxy.sample_offset+MSTprj.msldemc_hdr_imxy.samples;
+l1 = MSTprj.msldemc_imFOVhdr.line_offset+1;
+lend = MSTprj.msldemc_imFOVhdr.line_offset+MSTprj.msldemc_imFOVhdr.lines;
+s1 = MSTprj.msldemc_imFOVhdr.sample_offset+1;
+send = MSTprj.msldemc_imFOVhdr.sample_offset+MSTprj.msldemc_imFOVhdr.samples;
 dem_northing_crop = MSLDEMdata.hdr.y(l1:lend);
 dem_easting_crop  = MSLDEMdata.hdr.x(s1:send);
 
@@ -88,15 +88,15 @@ dem_easting_crop  = MSLDEMdata.hdr.x(s1:send);
 
 %% Main computation.
 tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
-    im_nnx,im_nny] = ...
+    im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
 proj_mastcam2MSLDEM_v4_mex(...
     MSLDEMdata.imgpath,...0
     MSLDEMdata.hdr,...1
-    MSTprj.msldemc_hdr_imxy,...2
+    MSTprj.msldemc_imFOVhdr,...2
     dem_northing_crop,...3
     dem_easting_crop,...4
-    MSTprj.msldemc_imxy(:,:,1),...5
-    MSTprj.msldemc_imxy(:,:,2),...6
+    MSTprj.msldemc_imFOVxy(:,:,1),...5
+    MSTprj.msldemc_imFOVxy(:,:,2),...6
     MSTprj.msldemc_imFOVmask,...7
     S_im,L_im,...8,9
     C_geo,A_geo,...10,11
@@ -105,19 +105,22 @@ proj_mastcam2MSLDEM_v4_mex(...
 
 %% Post computation task.
 % Evaluate the neaerest neighbor from the center of each image pixels.
-idx_nn = im_nnx*MSTprj.msldemc_hdr_imxy.lines + (im_nny+1);
-idx_nn = idx_nn(:);
-idx_nn_1d_nisnan = (idx_nn>=1);
-idx_nn_1d_ok = idx_nn(idx_nn_1d_nisnan);
-img_mask_nh = false(MSTprj.msldemc_hdr_imxy.lines*MSTprj.msldemc_hdr_imxy.samples,1);
-img_mask_nh(idx_nn_1d_ok) = true;
-img_mask_nh = reshape(img_mask_nh,[MSTprj.msldemc_hdr_imxy.lines,MSTprj.msldemc_hdr_imxy.samples]);
+idx_ctrnn = im_nnx*MSTprj.msldemc_imFOVhdr.lines + (im_nny+1);
+idx_ctrnn = idx_ctrnn(:);
+idx_ctrnn_1d_nisnan = (idx_ctrnn>=1);
+idx_ctrnn_1d_ok = idx_ctrnn(idx_ctrnn_1d_nisnan);
+img_mask_ctrnn = false(MSTprj.msldemc_imFOVhdr.lines*MSTprj.msldemc_imFOVhdr.samples,1);
+img_mask_ctrnn(idx_ctrnn_1d_ok) = true;
+img_mask_ctrnn = reshape(img_mask_ctrnn,[MSTprj.msldemc_imFOVhdr.lines,MSTprj.msldemc_imFOVhdr.samples]);
+img_mask_ctrnn = int8(img_mask_ctrnn);
 
 %% Fill propoerties of MASTCAMCameraProjectionMSLDEM object.
 MSTprj.mastcam_NEE = cat(3,im_north,im_east,im_elev);
 MSTprj.mastcam_msldemc_ref = cat(3,msldem_refx,msldem_refy,msldem_refs);
-MSTprj.mastcam_range = im_range;
-MSTprj.mastcam_msldemc_nn = cat(3,im_nnx,im_nny);
-MSTprj.msldemc_imFOVmask_nh = img_mask_nh;
+MSTprj.mastcam_range = sqrt(im_range);
+MSTprj.mastcam_msldemc_nn = cat(3,im_nnx+1,im_nny+1);
+MSTprj.msldemc_imFOVmask_ctrnn = img_mask_ctrnn;
+MSTprj.mastcam_emi = acosd(im_emi);
+MSTprj.mastcam_surfplnc = cat(3,im_pnx,im_pny,im_pnz,im_pc);
 
 end
