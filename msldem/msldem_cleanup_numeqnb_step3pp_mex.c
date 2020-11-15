@@ -1,5 +1,5 @@
 /* =====================================================================
- * msldem_cleanup_numeqnb_step3_mex.c
+ * msldem_cleanup_numeqnb_step3pp_mex.c
  * This function cleanup "msldem_numeqnb_cl2", which is the output of 
  * "msldem_cleanup_numeqnb_step2_mex". At this final step, low resolution 
  * pixels that only composed of two pixles are additionally detected. Such 
@@ -48,7 +48,8 @@ void msldem_numeqnb_clean_3rdstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     int32_T c_min,c_max,l_min,l_max;
     int32_T c_min3,c_max3,l_min3,l_max3;
     int32_T c_min5,c_max5,l_min5,l_max5;
-    int32_T cc_min,ll_min;
+    int32_T cc_min,ll_min,cc_min2,ll_min2;
+    float v_min2;
     int32_T ccc,lll,lidx2;
     float **elevtmp;
     float *elevtmp_base;
@@ -62,8 +63,9 @@ void msldem_numeqnb_clean_3rdstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     float data_ignore_value_float, data_ignore_value_float_p1;
     float m,v_min,v,vv,v_min_ccll,vv_ccll,v_max;
     int32_T N;
-    int8_T flg;
+    int8_T flg,flg_same;
     int32_T lidx,i;
+    float v_min_lr;
     
     float *v_min_ccll_ar;
     
@@ -147,36 +149,72 @@ void msldem_numeqnb_clean_3rdstep(char *msldem_imgpath, EnviHeader msldem_hdr,
             elevcl = elevtmp[l_elevtmp][c];
             //printf("c=%d \n",c);
             /* if pixel (c,l) is lageled as high resolution pixels */
-            if(msldem_numeqneighbors[c][l]==eval_val){
+            if(msldem_numeqnb_cl2[c][l]==eval_val){
                 c_min3 = (c-1>0)?(c-1):0;
                 c_max3 = (c+2<S_dem)?(c+2):S_dem;
                 
                 /* Evaluate surrounding pixel difference */
                 flg = 0;
                 for(cc=c_min3;cc<c_max3;cc++){
-                    if(msldem_numeqnb_cl2[cc][l]>0)
+                    if(msldem_numeqnb_cl2[cc][l]==0)
                         flg=1;
                 }
                 for(ll=l_min3;ll<l_max3;ll++){
-                    if(msldem_numeqnb_cl2[c][ll]>0)
+                    if(msldem_numeqnb_cl2[c][ll]==0)
                         flg=1;
                 }
                 
-                /* if the pixel contact a low resolution pixel */
+                /* if the pixel contact a high resolution pixel */
                 if(flg){
                     c_min = (c-wleft>0)?(c-wleft):0;
                     c_max = (c+wright+1<S_dem)?(c+wright+1):S_dem;
                     c_min5 = (c-2>0)?(c-2):0;
                     c_max5 = (c+3<S_dem)?(c+3):S_dem;
                     v_min = INFINITY;
-                    for(ll=l_min5;ll<l_max5;ll++){
+                    v_min_lr = INFINITY;
+                    for(ll=l_min3;ll<l_max3;ll++){
                         lidx = ll%wndw_size;
-                        for(cc=c_min5;cc<c_max5;cc++){
-                            if(msldem_numeqnb_cl2[cc][ll]==0 && (cc!=c || ll!=l)){
+                        for(cc=c_min3;cc<c_max3;cc++){
+                            if(cc!=c || ll!=l){
                                 // ccp = cc+wleft;
-                                vv = fabsf(elevtmp[lidx][cc]-elevcl);
-                                if( (v_min > vv) && (vv > 1e-9) ){
-                                    v_min = vv; cc_min = cc; ll_min = ll;
+                                if(msldem_numeqnb_cl2[cc][ll]==0){
+                                    vv = fabsf(elevtmp[lidx][cc]-elevcl);
+                                    if( (v_min > vv) && (vv > 1e-9) ){
+                                        v_min = vv; cc_min = cc; ll_min = ll;
+                                    }
+                                }else if(msldem_numeqnb_cl2[cc][ll]>0){
+                                    vv = fabsf(elevtmp[lidx][cc]-elevcl);
+                                    if( (v_min_lr > vv) && (vv > 1e-9) ){
+                                        v_min_lr = vv; // cc_min = cc; ll_min = ll;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    /* If the value is same as the low resolution pixel with value larger than 3 */
+                    flg_same = 1;
+                    cc=c_min;
+                    while(flg_same && cc<c_max){
+                        if( (msldem_numeqnb_cl2[cc][l]>3) && (fabsf(elevtmp[l_elevtmp][cc]-elevcl) < 1e-9) ){
+                            flg_same = 0; cc_min2 = cc; ll_min2 = l; v_min2 = elevtmp[l_elevtmp][cc];
+                        }
+                        cc++;
+                    }
+                    ll = l_min;
+                    while(flg_same && ll<l_max){
+                        lidx = ll%wndw_size;
+                        if(( (msldem_numeqnb_cl2[c][ll]>3) && (fabsf(elevtmp[lidx][c]-elevcl) < 1e-9) )){
+                            flg_same = 0; cc_min2 = c; ll_min2 = ll; v_min2 = elevtmp[lidx][c];
+                        }
+                        ll++;
+                    }
+                    if(flg_same){
+                        for(ll=l_min;ll<l_max;ll++){
+                            lidx = ll%wndw_size;
+                            for(cc=c_min;cc<c_max;cc++){
+                                if(msldem_numeqnb_cl2[cc][ll]>3 && (fabsf(elevtmp[lidx][cc]-elevcl) < 1e-9) ){
+                                    flg_same = 0; cc_min2 = cc; ll_min2 = ll; v_min2 = elevtmp[lidx][cc];
                                 }
                             }
                         }
@@ -186,7 +224,6 @@ void msldem_numeqnb_clean_3rdstep(char *msldem_imgpath, EnviHeader msldem_hdr,
                     /* local standard deviation */
                     m = 0;
                     N = 0;
-                   
                     for(ll=l_min;ll<l_max;ll++){
                         lidx = ll%wndw_size;
                         for(cc=c_min;cc<c_max;cc++){
@@ -230,15 +267,12 @@ void msldem_numeqnb_clean_3rdstep(char *msldem_imgpath, EnviHeader msldem_hdr,
                     }
                     v = v / (float) N;
                     
-                    // if((l==30679 && c==19760) || (l==30678 && c==19760) || (l==49260 && c==9259) || (l==49261 && c==9259)){
-                    if((c==3680 && l==23459) || (l==23198 && c==3647)){
-                        printf("l%d,c%d,%f,%f,%f,%10f,%10f,%d,%d,%f\n",l,c,elevcl,v_min,v_max,(v_min-m)*(v_min-m),16*v,ll_min,cc_min,elevtmp[ll_min%wndw_size][cc_min+wleft]);
+                    if((l==14146 && c==18540) || (l==25299 && c==3907) || (l==23147 && c==3640) || (l==33558 && c==4951)){
+                         printf("l%d,c%d,%f,%f,%f,%f,%d,%d,%d,%f\n",l,c,elevcl,v_min,(v_min-m)*(v_min-m),16*v,flg_same,c_min,l_min,v_min2);
                     }
                     
-                    if((v_min>0.1) && (v_min-m)*(v_min-m) > 16*v){
-                    // if((v_min-m)*(v_min-m) > 16*v){
-                        // msldem_numeqnb_cl3[c][l] = msldem_numeqneighbors[c][l];
-                        msldem_numeqnb_cl3[c][l] = 1;
+                    if((v_min<0.1) && (v_min-m)*(v_min-m) < 16*v && (flg_same==1)){
+                        msldem_numeqnb_cl3[c][l] = 0;
                     }
                 }
             }

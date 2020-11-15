@@ -51,7 +51,7 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
         int8_T **msldem_numeqneighbors, int8_T **msldem_numeqnb_clean,
         int8_T **msldem_numeqnb_cl2, int32_T wndw_size)
 {
-    int32_T c,l,cp;
+    int32_T c,l;
     int32_T cc,ll;
     int32_T ltu,l_elevtmp; // Line of Temporary array for update
     int32_T c_min,c_max,l_min,l_max;
@@ -60,7 +60,7 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     int32_T wleft, wright;
     int32_T S_dem, L_dem;
     int32_T L_dem_mmrgn;
-    int32_T S_dem_pmrgn;
+    // int32_T S_dem_pmrgn;
     size_t sz = sizeof(float);
     FILE *fid;
     float elevcl;
@@ -73,7 +73,7 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     S_dem = (int32_T) msldem_hdr.samples;
     L_dem = (int32_T) msldem_hdr.lines;
     L_dem_mmrgn = L_dem - wright;
-    S_dem_pmrgn = S_dem + wleft + wright;
+    // S_dem_pmrgn = S_dem + wleft + wright;
 
     // printf("%d \n",L_dem);
     
@@ -90,15 +90,15 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     
     // create 20 x (S_dem + 20 - 1) temporary array
     elevtmp = (float**) malloc(sizeof(float*) * (size_t) wndw_size);
-    elevtmp_base = (float*) malloc(sizeof(float) * (size_t) (wndw_size * S_dem_pmrgn));
+    elevtmp_base = (float*) malloc(sizeof(float) * (size_t) (wndw_size * S_dem));
     elevtmp[0] = &elevtmp_base[0];
     for(l=1;l<wndw_size;l++){
-        elevtmp[l] = elevtmp[l-1] + S_dem_pmrgn;
+        elevtmp[l] = elevtmp[l-1] + S_dem;
     }
     
     // initialize the temporary array
     for(l=0;l<wndw_size;l++){
-        for(c=0;c<S_dem_pmrgn;c++)
+        for(c=0;c<S_dem;c++)
             elevtmp[l][c] = data_ignore_value_float;
     }
     
@@ -106,7 +106,7 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
     
     ltu = 0;
     for(l=0;l<wright;l++){
-        fread(&elevtmp[ltu][wleft],sz,S_dem,fid);
+        fread(elevtmp[ltu],sz,S_dem,fid);
         ltu++;
         ltu = ltu % wndw_size;
     }
@@ -120,10 +120,10 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
         l_elevtmp = l % wndw_size;
         
         if(l<L_dem_mmrgn){
-            fread(&elevtmp[ltu][wleft],sz,S_dem,fid);
+            fread(elevtmp[ltu],sz,S_dem,fid);
             //printf("%d \n",l);
         } else {
-            for(c=0;c<S_dem_pmrgn;c++)
+            for(c=0;c<S_dem;c++)
                 elevtmp[ltu][c] = data_ignore_value_float;
         }
         ltu++;
@@ -134,8 +134,8 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
         l_max = (l+wright+1<L_dem)?(l+wright+1):L_dem;
         
         for(c=0;c<S_dem;c++){
-            cp = c+wleft;
-            elevcl = elevtmp[l_elevtmp][cp];
+            // cp = c+wleft;
+            elevcl = elevtmp[l_elevtmp][c];
             //printf("c=%d \n",c);
             /* if pixel (c,l) is lageled as high resolution pixels */
             if(msldem_numeqnb_clean[c][l]==0){
@@ -143,12 +143,12 @@ void msldem_numeqnb_clean_2ndstep(char *msldem_imgpath, EnviHeader msldem_hdr,
                 c_max = (c+wright+1<S_dem)?(c+wright+1):S_dem;
                 for(cc=c_min;cc<c_max;cc++){
                     if( (cc!=c) && msldem_numeqnb_clean[cc][l]>0 
-                            && (fabsf(elevcl-elevtmp[l_elevtmp][cc+wleft]) < 1e-9))
+                            && (fabsf(elevcl-elevtmp[l_elevtmp][cc]) < 1e-9))
                         msldem_numeqnb_cl2[c][l] = msldem_numeqneighbors[c][l];
                 }
                 for(ll=l_min;ll<l_max;ll++){
                     if(ll!=l && msldem_numeqnb_clean[c][ll]>0
-                            && (fabsf(elevcl-elevtmp[ll%wndw_size][cp]) < 1e-9) )
+                            && (fabsf(elevcl-elevtmp[ll%wndw_size][c]) < 1e-9) )
                         msldem_numeqnb_cl2[c][l] = msldem_numeqneighbors[c][l];
                 }
             }
