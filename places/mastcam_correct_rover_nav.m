@@ -1,4 +1,4 @@
-function [rover_nav_cor] = mastcam_correct_rover_nav(rover_nav,cmmdl_rov,MSLDEMdata,varargin)
+function [rover_nav_cor,option] = mastcam_correct_rover_nav(rover_nav,cmmdl_rov,MSLDEMdata,varargin)
 % [rover_nav_cor] = mastcam_correct_rover_orientation(rover_nav,cmmdl_rov,varargin)
 %   Manually correct rover_nav. You can correct rotation and translation
 %   with manual inputs. 
@@ -10,7 +10,9 @@ function [rover_nav_cor] = mastcam_correct_rover_nav(rover_nav,cmmdl_rov,MSLDEMd
 %              corrected rover location.
 % OUTPUT Parameters
 %  rover_nav_cor: object of ROVER_NAV class, with location and orientation
-%  fixed.
+%                 fixed.
+%  option       : struct, all the optional parameters are stored whether or
+%                 not specified.
 % OPTIONAL Parameters
 %   'ROLL','PITCH','YAW': roll, pitch, yaw angles in degree.
 %    (default) 0 for all.
@@ -49,6 +51,7 @@ rtaxis  = 'CAMERA'; %{'CAMERA','ROVER','GEOXYZ'}
 tlaxis  = 'CAMERA';
 tlorder = 'BEFORE';
 tlvec   = [0 0 0];
+vr_stradd  = 'cor';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -68,11 +71,14 @@ else
                 tlorder = upper(varargin{i+1});
             case 'TRANSLATION_VECTOR'
                 tlvec = varargin{i+1};
+            case 'VERSION_ADDITIONAL_STRING'
+                vr_stradd = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
     end
 end
+
 
 
 % Get camera rotation matrix on the Rover coordinate.
@@ -178,5 +184,12 @@ end
 rover_nav_cor.NORTHING  = north_cor;
 rover_nav_cor.EASTING   = east_cor ;
 rover_nav_cor.ELEVATION = el_cor   ;
+
+rover_nav_cor.version = [rover_nav.version '_' vr_stradd];
+
+%%
+option = struct('ROTATION_AXIS',rtaxis,'ROLLd',dRolld,'PITCHd',dPitchd,'YAWd',dYawd,...
+    'TRANSLATION_AXIS',tlaxis,'TRANSLATION_ORDER',tlorder,'TRANSLATION_VECTOR',tlvec);
+
 
 end

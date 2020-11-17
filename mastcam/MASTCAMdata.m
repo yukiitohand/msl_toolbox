@@ -59,8 +59,9 @@ classdef MASTCAMdata < HSI
             [rmc_mdl] = mastcam_get_RMC(obj.lbl);
         end
         function [rover_nav] = get_rover_nav(obj,varargin)
-            [rover_nav] = get_ROVER_NAV_from_mslplc_view_csv(...
-                obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
+            [rover_nav,option] = msl_get_ROVER_NAV(obj,varargin{:});
+            % [rover_nav] = get_ROVER_NAV_from_mslplc_view_csv(...
+            %     obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
         end
         
         function [] = get_CAM_MDL_GEO(obj)

@@ -2,6 +2,7 @@ classdef ROVER_NAV < handle
     %ROVER_NAV class
     %  Properties are the column of telemetry.csv
     %   
+    %   version: name of the 
     
     properties
         FRAME
@@ -28,6 +29,7 @@ classdef ROVER_NAV < handle
         SOL
         rot_mat
         rot_mat_inv
+        version
     end
     
     methods

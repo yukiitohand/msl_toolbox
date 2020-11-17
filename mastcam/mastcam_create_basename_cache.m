@@ -1,4 +1,31 @@
-function [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj)
+function [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,varargin)
+% [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj)
+%  Output common part of the basename of cache files. The basename is in
+%  the form that includes side_id, drive_id, pose_id, remote sensing mast
+%  motion counter.
+%  INPUTS
+%   mastcamdata_obj: MASTCAMdata obj or MASTCAMgroup_eye that shares same
+%   Rover Navigation model
+%  OUTPUTS
+%   basename_cache_com: basename of the cache files, common part.
+%  OPTIONAL PARAMETERS
+%   'ROVER_NAV_VERSION': version of the rover nav
+%     (default) >> mastcamdata_obj.ROVER_NAV.version
+
+
+rover_nav_vr = mastcamdata_obj.ROVER_NAV.version;
+if (rem(length(varargin),2)==1)
+    error('Optional parameters should always go by pairs');
+else
+    for i=1:2:(length(varargin)-1)
+        switch upper(varargin{i})
+            case {'ROVER_NAV_VERSION'}
+                rover_nav_vr = varargin{i+1};
+            otherwise
+                error('Unrecognized option: %s',varargin{i});
+        end
+    end
+end
 
 if iscell(mastcamdata_obj.PRODUCT_ID)
     productID_repre = mastcamdata_obj.PRODUCT_ID{1};
@@ -17,7 +44,7 @@ site_id  = mastcamdata_obj.RMC.SITE;
 drive_id = mastcamdata_obj.RMC.DRIVE;
 pose_id  = mastcamdata_obj.RMC.POSE;
 rsm_mc   = mastcamdata_obj.RMC.RSM;
-basename_cache_com = sprintf('%s%s%s_SITE%03dDRIVE%04dPOSE%03dRSM%03d',sol,cam_code,seq_id,...
-    site_id,drive_id,pose_id,rsm_mc);
+basename_cache_com = sprintf('%s%s%s_SITE%03dDRIVE%04dPOSE%03dRSM%03d_%s',sol,cam_code,seq_id,...
+    site_id,drive_id,pose_id,rsm_mc,rover_nav_vr);
 
 end
