@@ -84,6 +84,8 @@ classdef ROVER_NAV < handle
                             obj.SCLK = varargin{i+1};
                         case 'SOL'
                             obj.SOL = varargin{i+1};
+                        case 'VERSION'
+                            obj.version = varargin{i+1};
                         otherwise
                             error('Parameter: %s', varargin{i});   
                     end

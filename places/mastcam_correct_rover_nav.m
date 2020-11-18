@@ -51,7 +51,7 @@ rtaxis  = 'CAMERA'; %{'CAMERA','ROVER','GEOXYZ'}
 tlaxis  = 'CAMERA';
 tlorder = 'BEFORE';
 tlvec   = [0 0 0];
-vr_stradd  = 'cor';
+vr_stradd  = 'corv1';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else

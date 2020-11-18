@@ -13,7 +13,7 @@ function [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,va
 %     (default) >> mastcamdata_obj.ROVER_NAV.version
 
 
-rover_nav_vr = mastcamdata_obj.ROVER_NAV.version;
+rover_nav_vr = '';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -25,6 +25,10 @@ else
                 error('Unrecognized option: %s',varargin{i});
         end
     end
+end
+
+if isempty(rover_nav_vr)
+    rover_nav_vr = mastcamdata_obj.ROVER_NAV.version;
 end
 
 if iscell(mastcamdata_obj.PRODUCT_ID)
@@ -44,7 +48,7 @@ site_id  = mastcamdata_obj.RMC.SITE;
 drive_id = mastcamdata_obj.RMC.DRIVE;
 pose_id  = mastcamdata_obj.RMC.POSE;
 rsm_mc   = mastcamdata_obj.RMC.RSM;
-basename_cache_com = sprintf('%s%s%s_SITE%03dDRIVE%04dPOSE%03dRSM%03d_%s',sol,cam_code,seq_id,...
+basename_cache_com = sprintf('%s%s%s_site%03ddrive%04dpose%03drsm%03d_%s',sol,cam_code,seq_id,...
     site_id,drive_id,pose_id,rsm_mc,rover_nav_vr);
 
 end

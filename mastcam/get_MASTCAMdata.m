@@ -37,7 +37,7 @@ rsm_mc   = [];
 dwld = 0;
 vb   = 1;
 
-basename_view_csv = 'localized_interp';
+rover_nav_ver = 'localized_interp';
 
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
@@ -80,8 +80,8 @@ else
                     dwld = varargin{i+1};
                 case 'VERBOSE'
                     vb = varargin{i+1};
-                case 'BASENAME_VIEW_CSV'
-                    basename_view_csv = varargin{i+1};
+                case {'ROVER_NAV_VERSION','ROVER_NAV_VER'}
+                    rover_nav_ver = varargin{i+1};
                 otherwise
                     error('Unrecognized option: %s', varargin{i});   
             end
@@ -181,7 +181,7 @@ if isempty(basename)
             if isempty(extractMatchedBasename_v2(basename,[{fnamelist.name}],'exact',0))
                 pds_msl_imaging_downloader(subdir,'basenameptrn',basename,'dwld',dwld);
             end
-            mastcamdata_i = MASTCAMdata(basename,dpath,'BASENAME_VIEW_CSV',basename_view_csv);
+            mastcamdata_i = MASTCAMdata(basename,dpath,'ROVER_NAV_VERSION',rover_nav_ver);
             MASTCAMgroup_u.append(mastcamdata_i);
         end
         MASTCAMgroupList = [MASTCAMgroupList,MASTCAMgroup_u];
