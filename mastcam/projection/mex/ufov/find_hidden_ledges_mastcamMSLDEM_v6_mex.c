@@ -35,6 +35,7 @@
 
 #include <stdlib.h>
 #include "envi.h"
+#include "mex_create_array.h"
 
 /* main computation routine */
 void find_hidden(int32_T msldemc_samples, int32_T msldemc_lines,
@@ -420,71 +421,6 @@ void find_hidden(int32_T msldemc_samples, int32_T msldemc_lines,
     
     free(msldemcm_northing);
     
-}
-
-double** set_mxDoubleMatrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    double **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (double **) mxMalloc(N*sizeof(double*));
-    pm[0] = mxGetDoubles(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-float** set_mxSingleMatrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    float **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (float **) mxMalloc(N*sizeof(float*));
-    pm[0] = mxGetSingles(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-bool** set_mxLogicalMatrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    bool **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (bool **) mxMalloc(N*sizeof(bool*));
-    pm[0] = mxGetLogicals(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-int8_T** set_mxInt8Matrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    int8_T **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (int8_T **) mxMalloc(N*sizeof(int8_T*));
-    pm[0] = mxGetInt8s(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-int32_T** set_mxInt32Matrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    int32_T **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (int32_T **) mxMalloc(N*sizeof(int32_T*));
-    pm[0] = mxGetInt32s(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
 }
 
 /* The gateway function */
