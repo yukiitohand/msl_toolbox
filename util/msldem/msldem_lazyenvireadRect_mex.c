@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "envi.h"
+#include "mex_create_array.h"
 
 
 /* main computation routine */
@@ -86,7 +87,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     float **dem_img;
     mwSize msldemc_samples, msldemc_lines;
-    mwSize j;
+    // mwSize j;
 
     /* -----------------------------------------------------------------
      * CHECK PROPER NUMBER OF INPUTS AND OUTPUTS
@@ -126,12 +127,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //printf("%s\n",msldem_imgpath);
     
     /* INPUT 1 msldem_header */
-    msldem_header.samples = (int) mxGetScalar(mxGetField(prhs[1],0,"samples"));
-    msldem_header.lines = (int) mxGetScalar(mxGetField(prhs[1],0,"lines"));
-    msldem_header.bands = (int) mxGetScalar(mxGetField(prhs[1],0,"bands"));
-    msldem_header.data_type = (int) mxGetScalar(mxGetField(prhs[1],0,"data_type"));
-    msldem_header.byte_order = (int) mxGetScalar(mxGetField(prhs[1],0,"byte_order"));
-    msldem_header.header_offset = (int) mxGetScalar(mxGetField(prhs[1],0,"header_offset"));
+    msldem_header = mxGetEnviHeader(prhs[1]);
 
     // printf("%d\n",msldem_header.samples);
     /* INPUT 2/3 msldemc_sample_offset */
@@ -143,12 +139,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     msldemc_lines = (mwSize) mxGetScalar(prhs[5]);
     
     plhs[0] = mxCreateNumericMatrix(msldemc_samples,msldemc_lines,mxSINGLE_CLASS,mxREAL);
+    dem_img = set_mxSingleMatrix(plhs[0]);
     
-    dem_img = (float **) mxMalloc(msldemc_lines * sizeof(*dem_img) );
-    dem_img[0] = mxGetSingles(plhs[0]);
-    for( j=1;j<msldemc_lines;j++){
-        dem_img[j] = dem_img[j-1] + msldemc_samples;
-    }
+    // dem_img = (float **) mxMalloc(msldemc_lines * sizeof(*dem_img) );
+    // dem_img[0] = mxGetSingles(plhs[0]);
+    // for( j=1;j<msldemc_lines;j++){
+    //     dem_img[j] = dem_img[j-1] + msldemc_samples;
+    // }
 
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
