@@ -1,5 +1,7 @@
-function [msldemc_imFOVmask,msldemc_imFOVxy,msldemc_imFOVhdr] = proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
-% proj_MSLDEM2mastcam_v3(MSLDEMdata,mastcamdata_obj,varargin)
+function [msldemc_imFOVmask,msldemc_imFOVhdr,L_im,S_im,cmmdl_geo,option]...
+    = mastcam_get_projMSLDEM2mastcam_v3_imFOVmask(MSLDEMdata,mastcamdata_obj,varargin)
+% [msldemc_imFOVmask,msldemc_imFOVhdr,L_im,S_im,cmmdl_geo,option]...
+%     = mastcam_get_projMSLDEM2mastcam_v3_imFOVmask(MSLDEMdata,mastcamdata_obj,varargin)
 %   evaluate FOV of an image on an ortho-georeferenced image using a
 %   georeferenced DEM image.
 %  INPUTS:
@@ -33,7 +35,12 @@ function [msldemc_imFOVmask,msldemc_imFOVxy,msldemc_imFOVhdr] = proj_MSLDEM2mast
 %      msldemc_imFOVhdr.sample_offset = sample_offset;
 %      msldemc_imFOVhdr.y = msldemc_northing;
 %      msldemc_imFOVhdr.x = msldemc_easting;
-%      
+%   L_im, S_im: scalar, size of the mastcam image 
+%   cmmdl_geo: CAM_MDL class obj, 
+%      camera model defined on the geographical xyz coordinate (north - east - negative elevation) 
+%   option: struct, option of the method
+%      field: COEF_MARGIN
+%   
 
 
 %% GET CAMERA, ROVER_NAV, and Image size information
@@ -62,14 +69,15 @@ end
 %-------------------------------------------------------------------------%
 % Get the size of the mastcam image
 %-------------------------------------------------------------------------%
-switch class(mastcamdata_obj)
-    case 'MASTCAMdata'
-        L_im = mastcamdata_obj.hdr.lines; S_im = mastcamdata_obj.samples;
-    case 'MASTCAMgroup_eye'
-        L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
-    otherwise
-        error('second input needs to be either MASTCAMdata or MASTCAMgroup_eye class.');
-end
+L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
+% switch class(mastcamdata_obj)
+%     case 'MASTCAMdata'
+%         L_im = mastcamdata_obj.hdr.lines; S_im = mastcamdata_obj.samples;
+%     case 'MASTCAMgroup_eye'
+%         
+%     otherwise
+%         error('second input needs to be either MASTCAMdata or MASTCAMgroup_eye class.');
+% end
 
 %% First compute dem_imFOV_mask
 
@@ -146,19 +154,6 @@ msldemc_imFOVhdr.x = msldemc_easting;
 
 msldemc_imFOVmask = msldemc_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
-tic; [dem_imx,dem_imy] = get_imxy_MSLDEM_mex(...
-    MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_imFOVhdr,...
-    msldemc_northing,msldemc_easting,...
-    msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
-
-msldemc_imFOVxy = cat(3,dem_imx,dem_imy);
-
-
-%% Summary
-
-% MSLDEMprj = [];
-% MSLDEMprj.imFOV_mask = dem_imFOV_mask;
-% MSLDEMprj.imxy = dem_imxy;
-% MSLDEMprj.hdr_imxy = hdr_dem_imxy;
-
+%
+option = struct('COEF_MARGIN',coef_mrgn);
 end

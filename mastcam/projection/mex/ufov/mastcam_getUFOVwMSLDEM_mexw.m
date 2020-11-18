@@ -19,25 +19,39 @@ global msl_env_vars
 dirpath_cache = msl_env_vars.dirpath_cache;
 
 border_assess_opt = 'd';
-update_cache = false;
-cache_vr = 'v1';
+save_file = true;
+force = false;
+load_cache_ifexist = true;
+cache_vr = ''; % {'v0','v1'}
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
     for i=1:2:(length(varargin)-1)
         switch upper(varargin{i})
+            % ## I/O OPTIONS #---------------------------------------------
+            case {'CACHE_DIRPATH','DIRPATH_CACHE'}
+                dirpath_cache = varargin{i+1};
+            case 'SAVE_FILE'
+                save_file = varargin{i+1};
+            case 'FORCE'
+                force = varargin{i+1};
+            case {'LOAD_CACHE_IFEXIST','LCIE'}
+                load_cache_ifexist = varargin{i+1};
+            case {'CACHE_VER','CACHE_VERSION'}
+                cache_vr = varargin{i+1};
+            
+            % ## PROCESSING OPTIONS #--------------------------------------
             case 'BORDER_ASSESS_OPT'
                 border_assess_opt = lower(varargin{i+1});
-            case 'DIRPATH_CACHE'
-                dirpath_cache = varargin{i+1};
-            case 'UPDATE_CACHE'
-                update_cache = varargin{i+1};
-            case 'CACHE_VERSION'
-                cache_vr = varargin{i+1};
+            
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
     end
+end
+
+if isempty(cache_vr)
+   error('Please enter cache version with the option "CACHE_VER" or "CACHE_VERSION".'); 
 end
 
 
@@ -67,59 +81,44 @@ C_geo = cmmdl_geo.C;
 %-------------------------------------------------------------------------%
 % Create label name for cache files
 %-------------------------------------------------------------------------%
-if iscell(mastcamdata_obj.PRODUCT_ID)
-    productID_repre = mastcamdata_obj.PRODUCT_ID{1};
-else
-    productID_repre = mastcamdata_obj.PRODUCT_ID;
-end
-propMASTCAMdata = getProp_basenameMASTCAM(productID_repre);
-cam_code = propMASTCAMdata.cam_code;
-if isnumeric(propMASTCAMdata.sol)
-    sol = sprintf('%04d',propMASTCAMdata.sol);
-end
-if isnumeric(propMASTCAMdata.seq_id)
-    seq_id = sprintf('%06d',propMASTCAMdata.seq_id);
-end
-site_id  = mastcamdata_obj.RMC.SITE;
-drive_id = mastcamdata_obj.RMC.DRIVE;
-pose_id  = mastcamdata_obj.RMC.POSE;
-rsm_mc   = mastcamdata_obj.RMC.RSM;
-basename_cache = sprintf('%s%s%s_SITE%03dDRIVE%04dPOSE%03dRSM%03d',sol,cam_code,seq_id,...
-    site_id,drive_id,pose_id,rsm_mc);
+[basename_cache] = mastcam_create_basename_cache(mastcamdata_obj);
 msldemc_imFOVhdr = MSTproj.msldemc_imFOVhdr;
 
-%-------------------------------------------------------------------------%
-% Get DEM image
-%-------------------------------------------------------------------------%
 
-tic; msldemc_img = msldem_lazyenvireadRect(MSLDEMdata,...
-           MSTproj.msldemc_imFOVhdr.sample_offset,...
-           MSTproj.msldemc_imFOVhdr.line_offset,...
-           MSTproj.msldemc_imFOVhdr.samples,...
-           MSTproj.msldemc_imFOVhdr.lines,...
-           'precision','double'); toc;
-
-
-
-l1 = MSTproj.msldemc_imFOVhdr.line_offset+1;
-lend = MSTproj.msldemc_imFOVhdr.line_offset+MSTproj.msldemc_imFOVhdr.lines;
-s1 = MSTproj.msldemc_imFOVhdr.sample_offset+1;
-send = MSTproj.msldemc_imFOVhdr.sample_offset+MSTproj.msldemc_imFOVhdr.samples;
-msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
-msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
-
-msldemc_northing = msldemc_northing - C_geo(1);
-msldemc_easting = msldemc_easting - C_geo(2);
-msldemc_img = -msldemc_img-C_geo(3);
 %%
 %-------------------------------------------------------------------------%
 % Evaluate the center of each pixel
 %-------------------------------------------------------------------------%
 basename_imUFOVmask_ctr = sprintf('%s_imUFOVmask_ctr_%s.mat',basename_cache,cache_vr);
 fpath_imUFOVmask_ctr = joinPath(dirpath_cache,basename_imUFOVmask_ctr);
-if ~update_cache && exist(fpath_imUFOVmask_ctr,'file')
-    load(fpath_imUFOVmask_ctr,'msldemc_imUFOVmask_ctr');
-else
+[flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_ctr,force,load_cache_ifexist);
+if flg_reproc
+    %---------------------------------------------------------------------%
+    % Get DEM image
+    %---------------------------------------------------------------------%
+
+    tic; msldemc_img = msldem_lazyenvireadRect(MSLDEMdata,...
+               MSTproj.msldemc_imFOVhdr.sample_offset,...
+               MSTproj.msldemc_imFOVhdr.line_offset,...
+               MSTproj.msldemc_imFOVhdr.samples,...
+               MSTproj.msldemc_imFOVhdr.lines,...
+               'precision','double'); toc;
+
+
+
+    l1 = MSTproj.msldemc_imFOVhdr.line_offset+1;
+    lend = MSTproj.msldemc_imFOVhdr.line_offset+MSTproj.msldemc_imFOVhdr.lines;
+    s1 = MSTproj.msldemc_imFOVhdr.sample_offset+1;
+    send = MSTproj.msldemc_imFOVhdr.sample_offset+MSTproj.msldemc_imFOVhdr.samples;
+    msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
+    msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
+
+    msldemc_northing = msldemc_northing - C_geo(1);
+    msldemc_easting = msldemc_easting - C_geo(2);
+    msldemc_img = -msldemc_img-C_geo(3);
+    
+    % computation
+    
     tic; [ msldemc_imUFOVmask_ctr ] = find_hidden_mastcamMSLDEM_v6_mex(...
         msldemc_img,...0
         msldemc_northing,...1
@@ -129,7 +128,22 @@ else
         MSTproj.msldemc_imFOVmask,...5
         S_im,L_im); toc;...6,7
     
-    save(fpath_imUFOVmask_ctr,'msldemc_imUFOVmask_ctr','msldemc_imFOVhdr');
+    if save_file
+        basename_msldem = MSLDEMdata.basename;
+        dirpath_msldem  = MSLDEMdata.dirpath;
+        if exist(fpath_imUFOVmask_ctr,'file')
+            delete(fpath_imUFOVmask_ctr);
+        end
+        fprintf('Saving %s ...',fpath_imUFOVmask_ctr);
+        save(fpath_imUFOVmask_ctr,'msldemc_imUFOVmask_ctr','msldemc_imFOVhdr',...
+            'basename_msldem','dirpath_msldem');
+        fprintf('\nDone.\n');
+    end
+else
+    load(fpath_imUFOVmask_ctr,'msldemc_imUFOVmask_ctr','basename_msldem');
+    if ~strcmpi(basename_msldem,MSLDEMdata.basename)
+        error('MSLDEM used for the cache is different from that of input.');
+    end
 end    
 msldemc_imUFOVmask = msldemc_imUFOVmask_ctr + int8(MSTproj.msldemc_imFOVmask_ctrnn);
 
@@ -139,15 +153,21 @@ msldemc_imUFOVmask = msldemc_imUFOVmask_ctr + int8(MSTproj.msldemc_imFOVmask_ctr
 %-------------------------------------------------------------------------%
 if contains(border_assess_opt,'d')
     basename_imUFOVmask_wdedge = sprintf('%s_imUFOVmask_wdedge_%s.mat',basename_cache,cache_vr);
-    % basename_imUFOVmask_wdedge = [basename_cache '_imUFOVmask_wdedge.mat'];
     fpath_imUFOVmask_wdedge = joinPath(dirpath_cache,basename_imUFOVmask_wdedge);
-    if ~update_cache && exist(fpath_imUFOVmask_wdedge,'file')
-        load(fpath_imUFOVmask_wdedge,'msldemc_imUFOVmask_wdedge');
-    else
+    [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_wdedge,force,load_cache_ifexist);
+    
+    if flg_reproc
         tic; [dem_imxm,dem_imym] = get_imxyclm_MSLDEM_mex(...
             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
             msldemc_northing+C_geo(1),msldemc_easting+C_geo(2),...
             MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
+        
+        % Evaluate the corner of the pixels
+        %  o---------o
+        %  |  (c,l)  |
+        %  |    X    |  
+        %  |         |
+        %  o---------o (c+1/2,l+1/2)
 
         tic; [ msldemc_imUFOVmask_d ] = find_hidden_edges_mastcamMSLDEM_v6_mex(...
             msldemc_img,...0
@@ -166,9 +186,24 @@ if contains(border_assess_opt,'d')
         tic; [ msldemc_imUFOVmask_wdedge ] = find_hidden_withEdges_mastcamMSLDEM(...
             msldemc_imUFOVmask_d,...0
             MSTproj.msldemc_imFOVmask); toc; ...1
+            
+        if save_file
+            basename_msldem = MSLDEMdata.basename;
+            dirpath_msldem  = MSLDEMdata.dirpath;
+            if exist(fpath_imUFOVmask_wdedge,'file')
+                delete(fpath_imUFOVmask_wdedge);
+            end
+            fprintf('Saving %s ...',fpath_imUFOVmask_wdedge);
+            save(fpath_imUFOVmask_wdedge,'msldemc_imUFOVmask_wdedge','msldemc_imFOVhdr',...
+                'basename_msldem','dirpath_msldem');
+            fprintf('\nDone.\n');
+        end
+    else
+        load(fpath_imUFOVmask_wdedge,'msldemc_imUFOVmask_wdedge','basename_msldem');
         
-        save(fpath_imUFOVmask_wdedge,'msldemc_imUFOVmask_wdedge','msldemc_imFOVhdr');
-    
+        if ~strcmpi(basename_msldem,MSLDEMdata.basename)
+            error('MSLDEM used for the cache is different from that of input.');
+        end
     end
     msldemc_imUFOVmask = msldemc_imUFOVmask_wdedge + msldemc_imUFOVmask;
 end
@@ -179,11 +214,17 @@ end
 %-------------------------------------------------------------------------%
 if contains(border_assess_opt,'c')
     basename_imUFOVmask_wcedge = sprintf('%s_imUFOVmask_wcedge_%s.mat',basename_cache,cache_vr);
-    % basename_imUFOVmask_wcedge = [basename_cache '_imUFOVmask_wcedge.mat'];
     fpath_imUFOVmask_wcedge = joinPath(dirpath_cache,basename_imUFOVmask_wcedge);
-    if ~update_cache && exist(fpath_imUFOVmask_wcedge,'file')
-        load(fpath_imUFOVmask_wcedge,'msldemc_imUFOVmask_wcedge');
-    else
+    [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_wcedge,force,load_cache_ifexist);
+    if flg_reproc
+        
+        % Evaluate the center of column edges
+        %   ---------
+        %  |  (c,l)  |
+        %  o    X    o
+        %  |         |
+        %   ---------
+        
         tic; [dem_imxm,dem_imym] = get_imxycm_MSLDEM_mex(...
             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
             msldemc_northing+C_geo(1),msldemc_easting+C_geo(2),...
@@ -207,7 +248,23 @@ if contains(border_assess_opt,'c')
             msldemc_imUFOVmask_c,...0
             MSTproj.msldemc_imFOVmask); toc; ...1
             
-        save(fpath_imUFOVmask_wcedge,'msldemc_imUFOVmask_wcedge','msldemc_imFOVhdr');
+        if save_file
+            basename_msldem = MSLDEMdata.basename;
+            dirpath_msldem  = MSLDEMdata.dirpath;
+            if exist(fpath_imUFOVmask_wcedge,'file')
+                delete(fpath_imUFOVmask_wcedge);
+            end
+            fprintf('Saving %s ...',fpath_imUFOVmask_wcedge);
+            save(fpath_imUFOVmask_wcedge,'msldemc_imUFOVmask_wcedge','msldemc_imFOVhdr',...
+                'basename_msldem','dirpath_msldem');
+            fprintf('\nDone.\n');
+            
+        end
+    else
+        load(fpath_imUFOVmask_wcedge,'msldemc_imUFOVmask_wcedge','basename_msldem');
+        if ~strcmpi(basename_msldem,MSLDEMdata.basename)
+            error('MSLDEM used for the cache is different from that of input.');
+        end
     end
     msldemc_imUFOVmask = msldemc_imUFOVmask_wcedge + msldemc_imUFOVmask;
 end
@@ -216,13 +273,18 @@ end
 %-------------------------------------------------------------------------%
 % Evaluate the center of line edges
 %-------------------------------------------------------------------------%
+% Evaluate the center of line edges
+        %   ----o----
+        %  |  (c,l)  |
+        %  |    X    |
+        %  |         |
+        %   ----o----
 if contains(border_assess_opt,'l')
     basename_imUFOVmask_wledge = sprintf('%s_imUFOVmask_wledge_%s.mat',basename_cache,cache_vr);
-    % basename_imUFOVmask_wledge = [basename_cache '_imUFOVmask_wledge.mat'];
     fpath_imUFOVmask_wledge = joinPath(dirpath_cache,basename_imUFOVmask_wledge);
-    if ~update_cache && exist(fpath_imUFOVmask_wledge,'file')
-        load(fpath_imUFOVmask_wledge,'msldemc_imUFOVmask_wledge');
-    else
+    [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_wledge,force,load_cache_ifexist);
+    if flg_reproc
+        
         tic; [dem_imxm,dem_imym] = get_imxylm_MSLDEM_mex(...
             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
             msldemc_northing+C_geo(1),msldemc_easting+C_geo(2),...
@@ -247,11 +309,27 @@ if contains(border_assess_opt,'l')
             msldemc_imUFOVmask_l,...0
             MSTproj.msldemc_imFOVmask); toc; ...1
             
-        save(fpath_imUFOVmask_wledge,'msldemc_imUFOVmask_wledge','msldemc_imFOVhdr');
+        if save_file
+            basename_msldem = MSLDEMdata.basename;
+            dirpath_msldem  = MSLDEMdata.dirpath;
+            if exist(fpath_imUFOVmask_wledge,'file')
+                delete(fpath_imUFOVmask_wledge);
+            end
+            fprintf('Saving %s ...',fpath_imUFOVmask_wledge);
+            save(fpath_imUFOVmask_wledge,'msldemc_imUFOVmask_wledge','msldemc_imFOVhdr',...
+                'basename_msldem','dirpath_msldem');
+            fprintf('\nDone.\n');
+        end
+    else
+        load(fpath_imUFOVmask_wledge,'msldemc_imUFOVmask_wledge','basename_msldem');
+        if ~strcmpi(basename_msldem,MSLDEMdata.basename)
+            error('MSLDEM used for the cache is different from that of input.');
+        end
     end
     msldemc_imUFOVmask = msldemc_imUFOVmask_wledge + msldemc_imUFOVmask;
 end
 
+%% Summary
 msldemc_imUFOVmask = int8(msldemc_imUFOVmask>0);
 
 end

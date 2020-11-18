@@ -1,4 +1,6 @@
-function proj_mastcam2MSLDEM_v5_mexw(mastcamdata_obj,MSLDEMdata,MSTprj,varargin)
+function [mastcam_NEE,mastcam_msldemc_ref,mastcam_range,mastcam_msldemc_nn,...
+    msldemc_imFOVmask_ctrnn,mastcam_emi,mastcam_surfplnc] = ...
+    proj_mastcam2MSLDEM_v5_mexw(mastcamdata_obj,MSLDEMdata,MSTprj,varargin)
 % proj_mastcam2MSLDEM_v5_mexw(mastcamdata_obj,MSLDEMdata,MSTprj)
 %   Project mastcam image onto MSLDEMdata
 %  INPUTS:
@@ -10,7 +12,6 @@ function proj_mastcam2MSLDEM_v5_mexw(mastcamdata_obj,MSLDEMdata,MSTprj,varargin)
 %    MSTprj: object of class MASTCAMCameraProjectionMSLDEM
 %
 %  OUTPUTS:
-%   No outputs. Following properties of MSTprj will be filled.
 %     mastcam_NEE: [L_im x S_im x 3]
 %       pages 1,2,3 are northing, easting, and elevation. 
 %     mastcam_msldemc_ref: [L_im x S_im x 3]
@@ -105,9 +106,11 @@ proj_mastcam2MSLDEM_v4_mex(...
 
 %% Post computation task.
 % Evaluate the neaerest neighbor from the center of each image pixels.
+% im_nnx and im_nny are the nearest neighbor indices 
+% (the first index starts with 0)
 idx_ctrnn = im_nnx*MSTprj.msldemc_imFOVhdr.lines + (im_nny+1);
 idx_ctrnn = idx_ctrnn(:);
-idx_ctrnn_1d_nisnan = (idx_ctrnn>=1);
+idx_ctrnn_1d_nisnan = (idx_ctrnn>=1); % invalid pixels are filled with -1.
 idx_ctrnn_1d_ok = idx_ctrnn(idx_ctrnn_1d_nisnan);
 img_mask_ctrnn = false(MSTprj.msldemc_imFOVhdr.lines*MSTprj.msldemc_imFOVhdr.samples,1);
 img_mask_ctrnn(idx_ctrnn_1d_ok) = true;
@@ -115,12 +118,12 @@ img_mask_ctrnn = reshape(img_mask_ctrnn,[MSTprj.msldemc_imFOVhdr.lines,MSTprj.ms
 img_mask_ctrnn = int8(img_mask_ctrnn);
 
 %% Fill propoerties of MASTCAMCameraProjectionMSLDEM object.
-MSTprj.mastcam_NEE = cat(3,im_north,im_east,im_elev);
-MSTprj.mastcam_msldemc_ref = cat(3,msldem_refx,msldem_refy,msldem_refs);
-MSTprj.mastcam_range = sqrt(im_range);
-MSTprj.mastcam_msldemc_nn = cat(3,im_nnx+1,im_nny+1);
-MSTprj.msldemc_imFOVmask_ctrnn = img_mask_ctrnn;
-MSTprj.mastcam_emi = acosd(im_emi);
-MSTprj.mastcam_surfplnc = cat(3,im_pnx,im_pny,im_pnz,im_pc);
+mastcam_NEE = cat(3,im_north,im_east,im_elev);
+mastcam_msldemc_ref = cat(3,msldem_refx,msldem_refy,msldem_refs); % original, index start from 0.
+mastcam_range = sqrt(im_range);
+mastcam_msldemc_nn = cat(3,im_nnx+1,im_nny+1); % index start from 1.
+msldemc_imFOVmask_ctrnn = img_mask_ctrnn;
+mastcam_emi = acosd(im_emi);
+mastcam_surfplnc = cat(3,im_pnx,im_pny,im_pnz,im_pc);
 
 end

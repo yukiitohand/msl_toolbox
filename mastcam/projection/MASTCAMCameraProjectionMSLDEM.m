@@ -54,8 +54,8 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         mastcam_range
         mastcam_msldemc_ref
         mastcam_msldemc_nn
-        qNEEpolygons
-        qmastcam_imxypolygons
+        qNEEpolygons          % quick NEE polygons
+        qmastcam_imxypolygons % quick imxy polygons
         msldemc_imUFOVhdr  % offset information of unobstructed FOV
         msldemc_imUFOVmask % unobstructed FOV mask
         msldemc_imUFOVxy   % camera image (x,y) in the UFOV 
@@ -65,25 +65,35 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         mastcam_surfplnc
         cachedirpath
         cachefilepath
-        
+        cachebasename_common
+        version
+        rover_nav_version
     end
     
     methods
         function obj = MASTCAMCameraProjectionMSLDEM(mstdata_obj,MSLDEMdata_obj,varargin)
             global msl_env_vars
             obj.cachedirpath = msl_env_vars.dirpath_cache;
-            cache_vr = 'v1';
+            vr = ''; 
+            % version 0: corresponds to original
+            %         1: fixed rover nav
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
             else
                 for i=1:2:(length(varargin)-1)
                     switch upper(varargin{i})
-                        case 'CACHE_VERSION'
-                            cache_vr = lower(varargin{i+1});
+                        case {'VERSION','VER'}
+                            vr = lower(varargin{i+1});
                         otherwise
                             error('Unrecognized option: %s',varargin{i});
                     end
                 end
+            end
+            
+            if isempty(vr)
+                error('Please enter version with the option "VER" or "CACHE_VERSION".'); 
+            else
+                obj.version = vr;
             end
             
             obj.MASTCAMdata = mstdata_obj;
@@ -91,124 +101,76 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             
             % setup cache file name.
             [basename_cache_com] = mastcam_create_basename_cache(mstdata_obj);
-            cache_filename = sprintf('%s_msldemcUFOVmask_%s.mat',basename_cache_com,cache_vr);
-            obj.cachefilepath = joinPath(obj.cachedirpath,cache_filename);
+            obj.cachebasename_common = basename_cache_com;
+            
+            obj.rover_nav_version = mstdata_obj.ROVER_NAV.version;
             
         end
         
         % Master method performing all the projection
         function project(obj,varargin)
-            ufovmask_border_assess_opt = 'd';
-            ufovmask_update_cache = false;
-            ufovmask_cache_vr = 'v1';
-            if (rem(length(varargin),2)==1)
-                error('Optional parameters should always go by pairs');
-            else
-                for i=1:2:(length(varargin)-1)
-                    switch upper(varargin{i})
-                        case 'UFOVMASK_BORDER_ASSESS_OPT'
-                            ufovmask_border_assess_opt = lower(varargin{i+1});
-                        case 'UFOVMASK_UPDATE_CACHE'
-                            ufovmask_update_cache = varargin{i+1};
-                        case 'UFOVMASK_CACHE_VERSION'
-                            ufovmask_cache_vr = varargin{i+1};
-                        otherwise
-                            error('Unrecognized option: %s',varargin{i});
-                    end
-                end
-            end
-            obj.proj_MSLDEM2mastcam();
-            obj.proj_mastcam2MSLDEM();
-            obj.getUFOVwMSLDEM('BORDER_ASSESS_OPT',ufovmask_border_assess_opt,...
-                'UPDATE_CACHE',ufovmask_update_cache,'CACHE_VERSION',ufovmask_cache_vr);
-            obj.crop_msldemc_imUFOVmask();
-            obj.msldemc_imFOVhdr        = [];
-            obj.msldemc_imFOVmask       = [];
-            obj.msldemc_imFOVxy         = [];
-            obj.msldemc_imFOVmask_ctrnn = [];
+            % future implementation
         end
         
         %% dealing with cachefiles
-        function loadCache(obj)
-            if exist(obj.cachefilepath,'file')
-                load(obj.cachefilepath,'mastcam_NEE','mastcam_range',...
-                'mastcam_msldemc_ref','msldemc_imUFOVhdr',...
-                'msldemc_imUFOVmask','msldemc_imUFOVxy','msldemc_imUFOVxynn',...
-                'mastcam_msldemc_nn_UFOVmask');
-                obj.mastcam_NEE                 = mastcam_NEE                ;
-                obj.mastcam_range               = mastcam_range              ;
-                obj.mastcam_msldemc_ref         = mastcam_msldemc_ref        ;
-                obj.msldemc_imUFOVhdr           = msldemc_imUFOVhdr          ;
-                obj.msldemc_imUFOVmask          = msldemc_imUFOVmask         ;
-                obj.msldemc_imUFOVxy            = msldemc_imUFOVxy           ;
-                obj.msldemc_imUFOVxynn          = msldemc_imUFOVxynn         ;
-                obj.mastcam_msldemc_nn_UFOVmask = mastcam_msldemc_nn_UFOVmask;
+        function loadCache(obj,varargin)
+            obj.loadCache_projmastcam2MSLDEM(varargin{:});
+            obj.loadCacheUFOVmask(varargin{:});
+        end
+        
+        function loadCache_projmastcam2MSLDEM(obj,varargin)
+            % this cache loader loads the file from UFOV cache data.
+            fname_cache = sprintf('%s_projmastcam2MSLDEM_%s.mat',obj.cachebasename_common,obj.version);
+            cachepath = joinPath(obj.cachedirpath,fname_cache);
+            if exist(cachepath,'file')
+                 [obj.mastcam_NEE,obj.mastcam_msldemc_ref,obj.mastcam_range,...
+                     obj.mastcam_msldemc_nn,~,...
+                     obj.mastcam_emi,obj.mastcam_surfplnc] = ...
+                     mastcam_get_projmastcam2MSLDEM(obj.MASTCAMdata,...
+                     obj.MSLDEMdata,obj,varargin{:},...
+                     'Cache_Ver',obj.version);
             else
-                fprintf('no cache file is found');
+                error('No cache file exist');
             end
         end
         
-        function saveCache(obj)
-            mastcam_NEE                  = obj.mastcam_NEE;
-            mastcam_range                = obj.mastcam_range;
-            mastcam_msldemc_ref          = obj.mastcam_msldemc_ref;
-            msldemc_imUFOVhdr            = obj.msldemc_imUFOVhdr;
-            msldemc_imUFOVmask           = obj.msldemc_imUFOVmask;
-            msldemc_imUFOVxy             = obj.msldemc_imUFOVxy;
-            msldemc_imUFOVxynn           = obj.msldemc_imUFOVxynn;
-            mastcam_msldemc_nn_UFOVmask  = obj.mastcam_msldemc_nn_UFOVmask;
-            
-            save(obj.cachefilepath,'mastcam_NEE','mastcam_range',...
-                'mastcam_msldemc_ref','msldemc_imUFOVhdr',...
-                'msldemc_imUFOVmask','msldemc_imUFOVxy','msldemc_imUFOVxynn',...
-                'mastcam_msldemc_nn_UFOVmask');
-        end
-        
-        function clearCache(obj)
-            delete(obj.cachefilepath);
-        end
-        
-        function updateCache(obj)
-            flg_cont = 1;
-            if exist(obj.cachefilepath,'file')
-                [flg_cont] = doyouwanttocontinue('Cachefile exists.');
-            end
-            if flg_cont
-                obj.project();
-                obj.saveCache();
+        function loadCacheUFOVmask(obj,varargin)
+            % this cache loader loads the file from UFOV cache data.
+            basename_cache_ufovc = sprintf('%s_imUFOV_%s.mat',obj.cachebasename_common,obj.version);
+            fpath_ufovc = joinPath(obj.cachedirpath,basename_cache_ufovc);
+            if exist(fpath_ufovc,'file')
+                crop_and_save_msldemc_imUFOVmask(obj,varargin{:},...
+                    'Cache_Ver',obj.version);
+            else
+                error('No cache file exist');
             end
         end
         
-        function createCache(obj)
-            obj.updateCache();
-        end
-        
-        %% Projection component functions
-        function proj_MSLDEM2mastcam_old(obj)
-            [MSLDEMprj] = proj_MSLDEM2mastcam_v2(obj.MSLDEMdata,obj.MASTCAMdata);
-            l1 = MSLDEMprj.hdr_imxy.line_offset+1;
-            lend = MSLDEMprj.hdr_imxy.line_offset+MSLDEMprj.hdr_imxy.lines;
-            s1 = MSLDEMprj.hdr_imxy.sample_offset+1;
-            send = MSLDEMprj.hdr_imxy.sample_offset+MSLDEMprj.hdr_imxy.samples;
-            dem_imFOV_mask_crop = MSLDEMprj.imFOV_mask(l1:lend,s1:send);
-            obj.msldemc_imFOVxy = MSLDEMprj.imxy;
-            obj.msldemc_imFOVmask = dem_imFOV_mask_crop;
-            obj.msldemc_imFOVhdr = MSLDEMprj.hdr_imxy;
-        end
-        
+        %% Projection component functions        
         function proj_MSLDEM2mastcam(obj,varargin)
             [obj.msldemc_imFOVmask,obj.msldemc_imFOVxy,obj.msldemc_imFOVhdr]...
-                = proj_MSLDEM2mastcam_v3(obj.MSLDEMdata,obj.MASTCAMdata,varargin{:});
+                = mastcam_get_projMSLDEM2mastcam(obj.MSLDEMdata,obj.MASTCAMdata,varargin{:});
         end
         
         function proj_mastcam2MSLDEM(obj,varargin)
-            proj_mastcam2MSLDEM_v5_mexw(obj.MASTCAMdata,obj.MSLDEMdata,obj,varargin{:});
+            [obj.mastcam_NEE,obj.mastcam_msldemc_ref,obj.mastcam_range,...
+                obj.mastcam_msldemc_nn,obj.msldemc_imFOVmask_ctrnn,...
+                obj.mastcam_emi,obj.mastcam_surfplnc] = ...
+                mastcam_get_projmastcam2MSLDEM(obj.MASTCAMdata,...
+                obj.MSLDEMdata,obj,varargin{:});
         end
         
         function getUFOVwMSLDEM(obj,varargin)
             % Optional input parameters can be 'BORDER_ASSESS_OPT',
-            % 'DIRPATH_CACHE','UPDATE_CACHE', 'CACHE_VERSION'
+            % 'CACHE_DIRPATH_CACHE','SAVE_FILE','Force'
+            % 'LOAD_CACHE_IFEXIST', 'CACHE_VERSION'
             obj.msldemc_imUFOVmask = mastcam_getUFOVwMSLDEM_mexw(obj,varargin{:});
+        end
+        
+        function crop_and_save_msldemc_imUFOVmask(obj,varargin)
+             [obj.msldemc_imUFOVmask,obj.msldemc_imUFOVhdr,...
+                 obj.msldemc_imUFOVxynn,obj.mastcam_msldemc_nn_UFOVmask]...
+                 = mastcam_crop_msldemc_imUFOVmask(obj,varargin{:});
         end
         
         function get_FOVcone(obj,varargin)
@@ -295,72 +257,73 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             
         end
         
-        function crop_msldemc_imUFOVmask(obj)
-            valid_lines   = find(any(obj.msldemc_imUFOVmask',1));
-            lrnge         = [valid_lines(1), valid_lines(end)];
-            len_vl        = lrnge(2)-lrnge(1)+1;
-            valid_samples = find(any(obj.msldemc_imUFOVmask,1));
-            srnge         = [valid_samples(1), valid_samples(end)];
-            len_vs        = srnge(2)-srnge(1)+1;
-
-            l1   = obj.msldemc_imFOVhdr.line_offset+lrnge(1);
-            lend = obj.msldemc_imFOVhdr.line_offset+lrnge(2);
-            s1   = obj.msldemc_imFOVhdr.sample_offset+srnge(1);
-            send = obj.msldemc_imFOVhdr.sample_offset+srnge(2);
-            msldemc_northing = obj.MSLDEMdata.hdr.y(l1:lend);
-            msldemc_easting  = obj.MSLDEMdata.hdr.x(s1:send);
-
-            obj.msldemc_imUFOVmask = obj.msldemc_imUFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
-
-            obj.msldemc_imUFOVhdr = [];
-            obj.msldemc_imUFOVhdr.lines   = len_vl;
-            obj.msldemc_imUFOVhdr.samples = len_vs;
-            obj.msldemc_imUFOVhdr.line_offset   = l1-1;
-            obj.msldemc_imUFOVhdr.sample_offset = s1-1;
-            obj.msldemc_imUFOVhdr.y = msldemc_northing;
-            obj.msldemc_imUFOVhdr.x = msldemc_easting;
-
-            obj.msldemc_imUFOVxy = obj.msldemc_imFOVxy(lrnge(1):lrnge(2),srnge(1):srnge(2),:);
-            mm = (obj.msldemc_imUFOVmask==0);
-            for i=1:2
-                msldemc_imUFOVtmp = obj.msldemc_imUFOVxy(:,:,i);
-                msldemc_imUFOVtmp(mm) = nan;
-                obj.msldemc_imUFOVxy(:,:,i) = msldemc_imUFOVtmp;
-            end
-            
-            obj.msldemc_imUFOVxynn = round(obj.msldemc_imUFOVxy+1);
-            
-            L_im = obj.MASTCAMdata.L_im; S_im = obj.MASTCAMdata.S_im;
-            
-            msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,1);
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
-            msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.S_im) = S_im;
-            obj.msldemc_imUFOVxynn(:,:,1) = msldemc_imUFOVtmp;
-            msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,2);
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
-            msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.L_im) = L_im;
-            obj.msldemc_imUFOVxynn(:,:,2) = msldemc_imUFOVtmp;
-            obj.msldemc_imUFOVxynn = int16(obj.msldemc_imUFOVxynn);
-            
-            obj.mastcam_msldemc_nn_UFOVmask = obj.mastcam_msldemc_nn;
-            obj.mastcam_msldemc_nn_UFOVmask(:,:,1) = obj.mastcam_msldemc_nn_UFOVmask(:,:,1)-int32(srnge(1)-1);
-            obj.mastcam_msldemc_nn_UFOVmask(:,:,2) = obj.mastcam_msldemc_nn_UFOVmask(:,:,2)-int32(lrnge(1)-1);
-            
-        end
         
-        function correct_(obj,varargin)
-            % see mastcam_correct_rover_nav for what Optional parameters
-            % can be accepted.
-            [rover_nav_cor] = mastcam_correct_rover_nav(...
-                obj.MASTCAMdata.ROVER_NAV,obj.MASTCAMdata.CAM_MDL,...
-                obj.MSLDEMdata,varargin{:});
-            obj.MASTCAMdata.ROVER_NAV.NORTHING = rover_nav_cor.NORTHING;
-            
-            
-        end
         
+        % function proj_MSLDEM2mastcam_old(obj)
+        %     [MSLDEMprj] = proj_MSLDEM2mastcam_v2(obj.MSLDEMdata,obj.MASTCAMdata);
+        %     l1 = MSLDEMprj.hdr_imxy.line_offset+1;
+        %     lend = MSLDEMprj.hdr_imxy.line_offset+MSLDEMprj.hdr_imxy.lines;
+        %     s1 = MSLDEMprj.hdr_imxy.sample_offset+1;
+        %     send = MSLDEMprj.hdr_imxy.sample_offset+MSLDEMprj.hdr_imxy.samples;
+        %     dem_imFOV_mask_crop = MSLDEMprj.imFOV_mask(l1:lend,s1:send);
+        %     obj.msldemc_imFOVxy = MSLDEMprj.imxy;
+        %     obj.msldemc_imFOVmask = dem_imFOV_mask_crop;
+        %     obj.msldemc_imFOVhdr = MSLDEMprj.hdr_imxy;
+        % end
+        %         function crop_msldemc_imUFOVmask(obj)
+%             valid_lines   = find(any(obj.msldemc_imUFOVmask',1));
+%             lrnge         = [valid_lines(1), valid_lines(end)];
+%             len_vl        = lrnge(2)-lrnge(1)+1;
+%             valid_samples = find(any(obj.msldemc_imUFOVmask,1));
+%             srnge         = [valid_samples(1), valid_samples(end)];
+%             len_vs        = srnge(2)-srnge(1)+1;
+% 
+%             l1   = obj.msldemc_imFOVhdr.line_offset+lrnge(1);
+%             lend = obj.msldemc_imFOVhdr.line_offset+lrnge(2);
+%             s1   = obj.msldemc_imFOVhdr.sample_offset+srnge(1);
+%             send = obj.msldemc_imFOVhdr.sample_offset+srnge(2);
+%             msldemc_northing = obj.MSLDEMdata.hdr.y(l1:lend);
+%             msldemc_easting  = obj.MSLDEMdata.hdr.x(s1:send);
+% 
+%             obj.msldemc_imUFOVmask = obj.msldemc_imUFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
+% 
+%             obj.msldemc_imUFOVhdr = [];
+%             obj.msldemc_imUFOVhdr.lines   = len_vl;
+%             obj.msldemc_imUFOVhdr.samples = len_vs;
+%             obj.msldemc_imUFOVhdr.line_offset   = l1-1;
+%             obj.msldemc_imUFOVhdr.sample_offset = s1-1;
+%             obj.msldemc_imUFOVhdr.y = msldemc_northing;
+%             obj.msldemc_imUFOVhdr.x = msldemc_easting;
+% 
+%             obj.msldemc_imUFOVxy = obj.msldemc_imFOVxy(lrnge(1):lrnge(2),srnge(1):srnge(2),:);
+%             mm = (obj.msldemc_imUFOVmask==0);
+%             for i=1:2
+%                 msldemc_imUFOVtmp = obj.msldemc_imUFOVxy(:,:,i);
+%                 msldemc_imUFOVtmp(mm) = nan;
+%                 obj.msldemc_imUFOVxy(:,:,i) = msldemc_imUFOVtmp;
+%             end
+%             
+%             obj.msldemc_imUFOVxynn = round(obj.msldemc_imUFOVxy+1);
+%             
+%             L_im = obj.MASTCAMdata.L_im; S_im = obj.MASTCAMdata.S_im;
+%             
+%             msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,1);
+%             msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
+%             msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
+%             msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.S_im) = S_im;
+%             obj.msldemc_imUFOVxynn(:,:,1) = msldemc_imUFOVtmp;
+%             msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,2);
+%             msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
+%             msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
+%             msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.L_im) = L_im;
+%             obj.msldemc_imUFOVxynn(:,:,2) = msldemc_imUFOVtmp;
+%             obj.msldemc_imUFOVxynn = int16(obj.msldemc_imUFOVxynn);
+%             
+%             obj.mastcam_msldemc_nn_UFOVmask = obj.mastcam_msldemc_nn;
+%             obj.mastcam_msldemc_nn_UFOVmask(:,:,1) = obj.mastcam_msldemc_nn_UFOVmask(:,:,1)-int32(srnge(1)-1);
+%             obj.mastcam_msldemc_nn_UFOVmask(:,:,2) = obj.mastcam_msldemc_nn_UFOVmask(:,:,2)-int32(lrnge(1)-1);
+%             
+%         end
         %% Interfaces for resolving pixel matching
         function [x_east,y_north] = get_NE_from_msldemc_imUFOVxy(obj,x_dem,y_dem)
             x_east = obj.msldemc_imUFOVhdr.x(x_dem);
