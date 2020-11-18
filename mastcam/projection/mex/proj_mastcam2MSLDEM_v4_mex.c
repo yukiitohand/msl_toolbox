@@ -51,6 +51,7 @@
 
 #include <stdlib.h>
 #include "envi.h"
+#include "mex_create_array.h"
 
 double get_sqr_dst(double ux,double uy,double uz,double vx,double vy,double vz)
 {
@@ -475,58 +476,6 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
     fclose(fid);
 }
 
-double** set_mxDoubleMatrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    double **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (double **) mxMalloc(N*sizeof(double*));
-    pm[0] = mxGetDoubles(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-bool** set_mxLogicalMatrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    bool **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (bool **) mxMalloc(N*sizeof(bool*));
-    pm[0] = mxGetLogicals(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-int8_T** set_mxInt8Matrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    int8_T **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (int8_T **) mxMalloc(N*sizeof(int8_T*));
-    pm[0] = mxGetInt8s(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
-int32_T** set_mxInt32Matrix(const mxArray *pmi){
-    mwSize M,N;
-    mwIndex j;
-    int32_T **pm;
-    M = mxGetM(pmi); N = mxGetN(pmi);
-    pm = (int32_T **) mxMalloc(N*sizeof(int32_T*));
-    pm[0] = mxGetInt32s(pmi);
-    for(j=1;j<N;j++){
-        pm[j] = pm[j-1]+M;
-    }
-    return pm;
-}
-
 /* The gateway function */
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[])
@@ -586,12 +535,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     msldem_imgpath = mxArrayToString(prhs[0]);
     
     /* INPUT 1 msldem_header */
-    msldem_header.samples = (int) mxGetScalar(mxGetField(prhs[1],0,"samples"));
-    msldem_header.lines = (int) mxGetScalar(mxGetField(prhs[1],0,"lines"));
-    msldem_header.bands = (int) mxGetScalar(mxGetField(prhs[1],0,"bands"));
-    msldem_header.data_type = (int) mxGetScalar(mxGetField(prhs[1],0,"data_type"));
-    msldem_header.byte_order = (int) mxGetScalar(mxGetField(prhs[1],0,"byte_order"));
-    msldem_header.header_offset = (int) mxGetScalar(mxGetField(prhs[1],0,"header_offset"));
+    msldem_header = mxGetEnviHeader(prhs[1]);
     
     /* INPUT 2 msldemc_sheader*/
     msldemc_imxy_sample_offset = (mwSize) mxGetScalar(mxGetField(prhs[2],0,"sample_offset"));
