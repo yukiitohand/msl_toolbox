@@ -63,6 +63,9 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         mastcam_msldemc_nn_UFOVmask
         mastcam_emi
         mastcam_surfplnc
+        mapper_mastcam2msldemc
+        mapper_msldemc2mastcam_cell
+        mapper_msldemc2mastcam_mat
         cachedirpath
         cachefilepath
         cachebasename_common
@@ -115,7 +118,7 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         %% dealing with cachefiles
         function loadCache(obj,varargin)
             obj.loadCache_projmastcam2MSLDEM(varargin{:});
-            obj.loadCacheUFOVmask(varargin{:});
+            obj.loadCache_UFOVmask(varargin{:});
         end
         
         function loadCache_projmastcam2MSLDEM(obj,varargin)
@@ -134,7 +137,7 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             end
         end
         
-        function loadCacheUFOVmask(obj,varargin)
+        function loadCache_UFOVmask(obj,varargin)
             % this cache loader loads the file from UFOV cache data.
             basename_cache_ufovc = sprintf('%s_imUFOV_%s.mat',obj.cachebasename_common,obj.version);
             fpath_ufovc = joinPath(obj.cachedirpath,basename_cache_ufovc);
@@ -372,11 +375,26 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             [x_dem,y_dem] = obj.get_imUFOVc_xy_from_NE(x_east,y_north);
             if ~isnan(x_dem) && ~isnan(y_dem) && (obj.msldemc_imUFOVmask(y_dem,x_dem)>0)
                 [x_mst,y_mst] = obj.get_mastcam_imxy_from_imUFOVcxy(x_dem,y_dem);
-                % MASK for MASTCAM image using MSLDEM
-                [mask_mastcam] = obj.create_mask_mastcam_wMSLDEMcoord(...
-                    x_dem,y_dem,x_mst,y_mst);
-                [mask_msldemc_UFOVmask] = obj.create_mask_msldem_wMSLDEMcoord(...
-                    x_dem,y_dem,x_mst,y_mst);
+                
+                % MASKs (forward and backward)
+                mask_msldemc_UFOVmask = false(obj.msldemc_imUFOVhdr.lines,obj.msldemc_imUFOVhdr.samples);
+                mask_msldemc_UFOVmask(y_dem,x_dem) = true;
+                idxes = obj.mapper_msldemc2mastcam_cell{obj.mapper_msldemc2mastcam_mat(y_dem,x_dem)};
+                mask_mastcam = false(obj.MASTCAMdata.L_im,obj.MASTCAMdata.S_im);
+                for i=1:size(idxes,2)
+                    mask_mastcam(idxes(2,i),idxes(1,i)) = true;
+                    idxes_j = obj.mapper_mastcam2msldemc{idxes(2,i),idxes(1,i)};
+                    for j=1:size(idxes_j,2)
+                        mask_msldemc_UFOVmask(idxes_j(2,j),idxes_j(1,j)) = true;
+                    end
+                end
+                % MASK for MSLDEM image
+                
+                
+                % [mask_mastcam] = obj.create_mask_mastcam_wMSLDEMcoord(...
+                %     x_dem,y_dem,x_mst,y_mst);
+                % [mask_msldemc_UFOVmask] = obj.create_mask_msldem_wMSLDEMcoord(...
+                %     x_dem,y_dem,x_mst,y_mst);
             else
                 x_mst = nan; y_mst = nan;
                 mask_mastcam = []; mask_msldemc_UFOVmask = [];
@@ -385,49 +403,69 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         
         function [x_east,y_north,x_dem,y_dem,mask_mastcam,mask_msldemc_UFOVmask]...
                 = create_SelectMask_fromMASTCAM(obj,x_mst,y_mst)
+            
+            % MASKs (forward and backward)
+            mask_mastcam = false(obj.MASTCAMdata.L_im,obj.MASTCAMdata.S_im);
+            mask_mastcam(y_mst,x_mst) = true;
+            idxes = obj.mapper_mastcam2msldemc{y_mst,x_mst};
+            mask_msldemc_UFOVmask = false(obj.msldemc_imUFOVhdr.lines,obj.msldemc_imUFOVhdr.samples);
+
+            for i=1:size(idxes,2)
+                mask_msldemc_UFOVmask(idxes(2,i),idxes(1,i)) = true;
+                idxes_j = obj.mapper_msldemc2mastcam_cell{obj.mapper_msldemc2mastcam_mat(idxes(2,i),idxes(1,i))};
+                for j=1:size(idxes_j,2)
+                    mask_mastcam(idxes_j(2,j),idxes_j(1,j)) = true;
+                end
+            end
+            
             % 
             [x_east,y_north] = obj.get_NorthEast_from_mastcam_imxy(x_mst,y_mst);
             [x_dem,y_dem] = obj.get_msldemc_imUFOVxy_from_mastcam_imxy(x_mst,y_mst);
-            if ~isnan(x_dem) && ~isnan(y_dem) && (obj.msldemc_imUFOVmask(y_dem,x_dem)>0)
-                [x_mst,y_mst] = obj.get_mastcam_imxy_from_imUFOVcxy(x_dem,y_dem);
-                
-                % MASK for MASTCAM image using MSLDEM
-                [mask_mastcam] = obj.create_mask_mastcam_wMSLDEMcoord(...
-                    x_dem,y_dem,x_mst,y_mst);
-                [mask_msldemc_UFOVmask] = obj.create_mask_msldem_wMSLDEMcoord(...
-                    x_dem,y_dem,x_mst,y_mst);
-            else
-                mask_mastcam = []; mask_msldemc_UFOVmask = [];
-            end
+            % if ~isnan(x_dem) && ~isnan(y_dem) && (obj.msldemc_imUFOVmask(y_dem,x_dem)>0)
+            %     [x_mst,y_mst] = obj.get_mastcam_imxy_from_imUFOVcxy(x_dem,y_dem);
+            %     
+            %     % MASK for MASTCAM image using MSLDEM
+            %     [mask_mastcam] = obj.create_mask_mastcam_wMSLDEMcoord(...
+            %         x_dem,y_dem,x_mst,y_mst);
+            %     [mask_msldemc_UFOVmask] = obj.create_mask_msldem_wMSLDEMcoord(...
+            %         x_dem,y_dem,x_mst,y_mst);
+            % else
+            %     mask_mastcam = []; mask_msldemc_UFOVmask = [];
+            % end
         end
         
-        function [mask_mastcam] = create_mask_mastcam_wMSLDEMcoord(obj,x_dem,y_dem,x_mst,y_mst)
-            % MASK for MASTCAM image using MSLDEM
-            % select all the pixels of MASTCAM image whose nearest neighbor 
-            % is (x_dem,y_dem) in the MSLDEM image space.
-            % You should get nozeros when the selected MSLDEM image pixel
-            % covers multiple pixels of MASTCAM image.
-            % --- SINGLE MSLDEM pixel -------------------------------------
-            mask_mastcam = and(...
-                obj.mastcam_msldemc_nn_UFOVmask(:,:,1)==x_dem,...
-                obj.mastcam_msldemc_nn_UFOVmask(:,:,2)==y_dem);
-            % The nearest MASTCAM pixel from the picked MSLDEM image pixel
-            % is also selected.
-            mask_mastcam(y_mst,x_mst) = true;
-        end
-        
-        function [mask_msldemc_UFOVmask] = create_mask_msldem_wMSLDEMcoord(obj,x_dem,y_dem,x_mst,y_mst)
-            % MASK for MSLDEM image
-            % select all the pixels of MSLDEM image whose nearest neighbor 
-            % is (x_mst,y_mst) in the mastcam image space.
-            % You should get nozeros when the selected MASTCAM image pixel
-            % covers multiple pixels of MSLDEM image.
-            % This mask might cover multiple MSLDEM image pixels if the
-            % pointed MASTCAM pixel covers muttiple MSLDEM image pixels.
-            mask_msldemc_UFOVmask = and(obj.msldemc_imUFOVxynn(:,:,1)==x_mst,...
-                obj.msldemc_imUFOVxynn(:,:,2)==y_mst);
-            mask_msldemc_UFOVmask(y_dem,x_dem) = true;
-        end
+%         function [mask_mastcam] = create_mask_mastcam_wMSLDEMcoord(obj,x_dem,y_dem,x_mst,y_mst)
+%             % MASK for MASTCAM image using MSLDEM
+%             % select all the pixels of MASTCAM image whose nearest neighbor 
+%             % is (x_dem,y_dem) in the MSLDEM image space.
+%             % You should get nozeros when the selected MSLDEM image pixel
+%             % covers multiple pixels of MASTCAM image.
+%             % --- SINGLE MSLDEM pixel -------------------------------------
+%             mask_mastcam = and(...
+%                 obj.mastcam_msldemc_nn_UFOVmask(:,:,1)==x_dem,...
+%                 obj.mastcam_msldemc_nn_UFOVmask(:,:,2)==y_dem);
+%             % The nearest MASTCAM pixel from the picked MSLDEM image pixel
+%             % is also selected.
+%             mask_mastcam(y_mst,x_mst) = true;
+%         end
+%         
+%         function [mask_msldemc_UFOVmask] = create_mask_msldem_wMSLDEMcoord(obj,x_dem,y_dem,x_mst,y_mst)
+%             % MASK for MSLDEM image
+%             % select all the pixels of MSLDEM image whose nearest neighbor 
+%             % is (x_mst,y_mst) in the mastcam image space.
+%             % You should get nozeros when the selected MASTCAM image pixel
+%             % covers multiple pixels of MSLDEM image.
+%             % This mask might cover multiple MSLDEM image pixels if the
+%             % pointed MASTCAM pixel covers muttiple MSLDEM image pixels.
+%             % mask_msldemc_UFOVmask = and(obj.msldemc_imUFOVxynn(:,:,1)==x_mst,...
+%             %     obj.msldemc_imUFOVxynn(:,:,2)==y_mst);
+%             mask_msldemc_UFOVmask = false(obj.msldemc_imUFOVhdr.lines,obj.msldemc_imUFOVhdr.samples);
+%             for i=1:size(obj.mapper_mastcam2msldemc{y_mst,x_mst},2)
+%                 tmp = obj.mapper_mastcam2msldemc{y_mst,x_mst};
+%                 mask_msldemc_UFOVmask(tmp(2,i),tmp(1,i)) = true;
+%             end
+%             mask_msldemc_UFOVmask(y_dem,x_dem) = true;
+%         end
         
         function [msldemcUFOV_mask,mask_mastcam] = get_rangeUFOVmask(obj,xrnge_east,yrnge_north)
             xUFOV_within =  and(obj.msldemc_imUFOVhdr.x > xrnge_east(1),obj.msldemc_imUFOVhdr.x < xrnge_east(2));
@@ -440,14 +478,16 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             [ufov_row,ufov_col] = find(msldemcUFOV_mask);
             
             mask_mastcam = false(obj.MASTCAMdata.L_im,obj.MASTCAMdata.S_im);
+            tic;
             for i=1:length(ufov_row)
                 ufov_rowi = ufov_row(i); ufov_coli = ufov_col(i);
                 [x_mst,y_mst] = obj.get_mastcam_imxy_from_imUFOVcxy(ufov_coli,ufov_rowi);
                 [mask_mastcam_i] = obj.create_mask_mastcam_wMSLDEMcoord(ufov_coli,ufov_rowi,x_mst,y_mst);
                 [msldemcUFOV_mask_i] = obj.create_mask_msldem_wMSLDEMcoord(ufov_coli,ufov_rowi,x_mst,y_mst);
                 mask_mastcam = or(mask_mastcam,mask_mastcam_i);
-                msldemcUFOV_mask = or(msldemcUFOV_mask,msldemcUFOV_mask_i);
+                tic; msldemcUFOV_mask = or(msldemcUFOV_mask,msldemcUFOV_mask_i); toc;
             end
+            toc;
         end
         
         

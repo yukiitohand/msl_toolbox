@@ -44,12 +44,12 @@ classdef MASTCAMprojectionView_wMSLDEM < handle
                     'XY_COORDINATE_SYSTEM','NorthEast',...
                     'IMAGE_CURSOR_FCN',@obj.ISV_MSLDEM_BtnDwnFcn,...
                     'IMAGE_WINDOWKEYPRESS_FCN',@obj.ISV_MSLDEM_WindowKeyPressFcn);
-                obj.init_ISV_MSLDEMquick();
+                obj.init_ISV_MSLDEM();
             else
                 obj.ISV_MSLDEM = obj.objHSIview.obj_ISV;
                 obj.ISV_MSLDEM.custom_image_cursor_fcn = @obj.ISV_MSLDEM_BtnDwnFcn;
                 obj.ISV_MSLDEM.custom_windowkeypress_fcn = @obj.ISV_MSLDEM_WindowKeyPressFcn;
-                obj.init_ISV_MSLDEMquick();
+                obj.init_ISV_MSLDEM();
             end
         end
         
@@ -85,7 +85,7 @@ classdef MASTCAMprojectionView_wMSLDEM < handle
         function init_ISV_MSLDEMquick(obj)
             % get MSLDEM image
             % set margin pixels for the UFOVmask
-            mrgn = 100;
+            mrgn = 1000;
             north_min = min(min(obj.MSTproj.mastcam_NEE(:,:,1),[],'all'),obj.MSTproj.FOVcone.center(1));
             north_max = max(max(obj.MSTproj.mastcam_NEE(:,:,1),[],'all'),obj.MSTproj.FOVcone.center(1));
             
@@ -232,8 +232,8 @@ classdef MASTCAMprojectionView_wMSLDEM < handle
                 % MSLDEM resolution.
                 % First get the selected point/area in the MSLDEM image at 
                 % MSLDEM resolution.
-                [x_east,y_north,x_dem,y_dem,mask_mastcam,mask_msldemc_UFOVmask]...
-                    = obj.MSTproj.create_SelectMask_fromMASTCAM(x_mst,y_mst);
+                tic; [x_east,y_north,x_dem,y_dem,mask_mastcam,mask_msldemc_UFOVmask]...
+                    = obj.MSTproj.create_SelectMask_fromMASTCAM(x_mst,y_mst); toc;
                 
                 
                 % --- SINGLE HSI pixel ----------------------------------------
@@ -344,14 +344,43 @@ classdef MASTCAMprojectionView_wMSLDEM < handle
             mask_mastcam_hsiresol = false(obj.MSTproj.MASTCAMdata.L_im,...
                 obj.MSTproj.MASTCAMdata.S_im);
             [hsirow,hsicol] = find(mask_hsi);
-            for i=1:length(hsirow) 
+            
+            x1 = obj.MSTproj.msldemc_imUFOVhdr.x(1);
+            dx = obj.MSTproj.MSLDEMdata.hdr.map_info.dx;
+            y1 = obj.MSTproj.msldemc_imUFOVhdr.y(1);
+            dy = obj.MSTproj.MSLDEMdata.hdr.map_info.dy;
+            
+            
+            for i=1:length(hsirow)
                 hsirowi = hsirow(i); hsicoli = hsicol(i);
                 [xrnge_east,yrnge_north] = hsielem.hsi.get_pixel_rangeNE_fromGLTxy(hsicoli,hsirowi);
-                [msldemcUFOV_hsii_mask,mask_mastcam_i] = obj.MSTproj.get_rangeUFOVmask(xrnge_east,yrnge_north);
-                mask_msldemc_UFOVmask_hsiresol = or(...
-                    mask_msldemc_UFOVmask_hsiresol,msldemcUFOV_hsii_mask);
-                mask_mastcam_hsiresol = or(...
-                    mask_mastcam_hsiresol,mask_mastcam_i);
+                xUFOVstrt = ceil((xrnge_east(1)-x1)/dx);
+                xUFOVend = floor((xrnge_east(2)-x1)/dx);
+                
+                yUFOVstrt = ceil((y1-yrnge_north(2))/dy);
+                yUFOVend = floor((y1-yrnge_north(1))/dy);
+                
+                for y_demi=yUFOVstrt:yUFOVend
+                    for x_demi=xUFOVstrt:xUFOVend
+                        mask_msldemc_UFOVmask_hsiresol(y_demi,x_demi) = true;
+                        if obj.MSTproj.msldemc_imUFOVmask(y_demi,x_demi)
+                            idxes = obj.MSTproj.mapper_msldemc2mastcam_cell{obj.MSTproj.mapper_msldemc2mastcam_mat(y_demi,x_demi)};
+                            for ii=1:size(idxes,2)
+                                mask_mastcam_hsiresol(idxes(2,ii),idxes(1,ii)) = true;
+                                % idxes_jj = obj.MSTproj.mapper_mastcam2msldemc{idxes(2,ii),idxes(1,ii)};
+                                % for jj=1:size(idxes_jj,2)
+                                %     mask_msldemc_UFOVmask_hsiresol(idxes_jj(2,jj),idxes_jj(1,jj)) = true;
+                                % end
+                            end
+                        end
+                    end
+                end
+                
+                % [msldemcUFOV_hsii_mask,mask_mastcam_i] = obj.MSTproj.get_rangeUFOVmask(xrnge_east,yrnge_north);
+                % mask_msldemc_UFOVmask_hsiresol = or(...
+                %     mask_msldemc_UFOVmask_hsiresol,msldemcUFOV_hsii_mask);
+                % mask_mastcam_hsiresol = or(...
+                %     mask_mastcam_hsiresol,mask_mastcam_i);
             end
         end
         
