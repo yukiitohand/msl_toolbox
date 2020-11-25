@@ -22,6 +22,7 @@ classdef MASTCAMdata < HSI
         function obj = MASTCAMdata(basename,dirpath,varargin)
             
             rover_nav_ver = 'localized_interp';
+            rover_nav_mstcode = '';
             varargin_rmidx = [];
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
@@ -30,6 +31,9 @@ classdef MASTCAMdata < HSI
                     switch upper(varargin{i})
                         case {'ROVER_NAV_VERSION','ROVER_NAV_VER'}
                             rover_nav_ver = varargin{i+1};
+                            varargin_rmidx = [varargin_rmidx i i+1];
+                        case 'ROVER_NAV_MSTCAM_CODE'
+                            rover_nav_mstcode = varargin{i+1};
                             varargin_rmidx = [varargin_rmidx i i+1];
                         otherwise
                             error('Unrecognized option: %s',varargin{i});
@@ -45,7 +49,8 @@ classdef MASTCAMdata < HSI
             obj.CAM_MDL = get_cammera_model(obj);
             obj.RMC = get_rmc(obj);
             obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
-            obj.ROVER_NAV  = obj.get_rover_nav('VERSION',rover_nav_ver);
+            obj.ROVER_NAV  = obj.get_rover_nav('VERSION',rover_nav_ver,...
+                'MSTCAM_CODE',rover_nav_mstcode);
             obj.get_filter_number();
             obj.get_instrument_id();
             obj.get_radiance_factor();
@@ -64,25 +69,25 @@ classdef MASTCAMdata < HSI
             %     obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
         end
         
-        function [] = get_CAM_MDL_GEO(obj)
-            [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
-                [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL);
-            cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
-            cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
-            imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.hdr.lines*obj.hdr.samples,3])';
-            imxy_direc_rov0_2d = obj.ROVER_NAV.rot_mat * imxy_direc_rov_2d;
-            imxy_direc_rov0 = reshape(imxy_direc_rov0_2d',[obj.hdr.lines,obj.hdr.samples,3]);
-            cmmdl_C_geo = cmmdl_C_rov0 + [obj.ROVER_NAV.NORTHING; 
-                              obj.ROVER_NAV.EASTING;
-                              -obj.ROVER_NAV.ELEVATION];
-                          
-            obj.CAM_MDL_GEO.A_rov0 = cmmdl_A_rov0;
-            obj.CAM_MDL_GEO.C_rov0 = cmmdl_C_rov0;
-            obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo;
-            obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
-            obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
-            
-        end
+%         function [] = get_CAM_MDL_GEO(obj)
+%             [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
+%                 [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL);
+%             cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
+%             cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
+%             imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.hdr.lines*obj.hdr.samples,3])';
+%             imxy_direc_rov0_2d = obj.ROVER_NAV.rot_mat * imxy_direc_rov_2d;
+%             imxy_direc_rov0 = reshape(imxy_direc_rov0_2d',[obj.hdr.lines,obj.hdr.samples,3]);
+%             cmmdl_C_geo = cmmdl_C_rov0 + [obj.ROVER_NAV.NORTHING; 
+%                               obj.ROVER_NAV.EASTING;
+%                               -obj.ROVER_NAV.ELEVATION];
+%                           
+%             obj.CAM_MDL_GEO.A_rov0 = cmmdl_A_rov0;
+%             obj.CAM_MDL_GEO.C_rov0 = cmmdl_C_rov0;
+%             obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo;
+%             obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
+%             obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
+%             
+%         end
         
         function get_instrument_id(obj)
             obj.INSTRUMENT_ID = obj.lbl.INSTRUMENT_ID;
@@ -137,17 +142,17 @@ classdef MASTCAMdata < HSI
             end
         end
         
-        function [img_iof] = get_IoF(obj)
-            if isempty(obj.img)
-                obj.readimg();
-            end
-            switch obj.FILTER_NUMBER
-                case 0
-                    img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* obj.img;
-                otherwise
-                    img_iof = obj.RADIANCE_FACTOR .* obj.img;
-            end
-        end
+%         function [img_iof] = get_IoF(obj)
+%             if isempty(obj.img)
+%                 obj.readimg();
+%             end
+%             switch obj.FILTER_NUMBER
+%                 case 0
+%                     img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* obj.img;
+%                 otherwise
+%                     img_iof = obj.RADIANCE_FACTOR .* obj.img;
+%             end
+%         end
         
         function delete(obj)
             delete(obj.CAM_MDL);

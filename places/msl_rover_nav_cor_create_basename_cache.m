@@ -1,5 +1,5 @@
-function [basename_cache_rovnav] = msl_rover_nav_create_basename_cache(mastcamdata_obj,rover_nav_vr)
-% [basename_cache_rovnav] = msl_rover_nav_create_basename_cache(mastcamdata_obj,rover_nav_vr)
+function [basename_cache_rovnav] = msl_rover_nav_cor_create_basename_cache(mastcamdata_obj,rover_nav_vr,varargin)
+% [basename_cache_rovnav] = msl_rover_nav_cor_create_basename_cache(mastcamdata_obj,rover_nav_vr)
 %  Output common part of the basename of cache files. The basename is in
 %  the form that includes side_id, drive_id, pose_id, remote sensing mast
 %  motion counter.
@@ -10,6 +10,23 @@ function [basename_cache_rovnav] = msl_rover_nav_create_basename_cache(mastcamda
 %  OUTPUTS
 %   basename_cache_rovnav: basename of rover cache file
 
-[basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,'ROVER_NAV_VERSION',rover_nav_vr);
+mstcam_code = '';
+if (rem(length(varargin),2)==1)
+    error('Optional parameters should always go by pairs');
+else
+    for i=1:2:(length(varargin)-1)
+        switch upper(varargin{i})
+            % case {'ROVER_NAV_VERSION'}
+            %     rover_nav_vr = varargin{i+1};
+            case 'MSTCAM_CODE'
+                mstcam_code = varargin{i+1};
+            otherwise
+                error('Unrecognized option: %s',varargin{i});
+        end
+    end
+end
+
+[basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,...
+    'ROVER_NAV_VERSION',rover_nav_vr,'CAM_CODE',mstcam_code);
 basename_cache_rovnav = [basename_cache_com '_ROVER_NAV'];
 end
