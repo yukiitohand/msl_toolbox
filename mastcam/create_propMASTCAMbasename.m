@@ -41,7 +41,7 @@ cdpid_counter  = '(?<cdpid_counter>[\d]{2})';
 unique_cdpid   = '(?<unique_cdpid>[\d]{5})';
 product_type   = '(?<product_type>[a-uA-U]{1})';
 gop            = '(?<gop>[\da-fA-F]{1})';
-data_proc_code = '(?<data_proc_code>([XD]{1}[XR]{1}[XC]{1}[XL]{1}|[A-Z0-9]{4}))';
+data_proc_code = '(?<data_proc_code>([XD]{1}[XR]{1}[XLC]{1}[XL]{1}|[A-Z0-9]{4}))';
 vr             = '(?<version>[\d]{1})';
 
 if (rem(length(varargin),2)==1)

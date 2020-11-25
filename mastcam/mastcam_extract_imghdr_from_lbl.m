@@ -34,6 +34,14 @@ else
         case 'UNSIGNED_INTEGER'
             hdr_info.byte_order = 1;
             hdr_info.data_type = 1;
+        case 'MSB_INTEGER'
+            hdr_info.byte_order = 1;
+            switch lbl.OBJECT_IMAGE.SAMPLE_BITS
+                case 16
+                    hdr_info.data_type = 2;
+                otherwise
+                    error('Undefined "lbl.OBJECT_IMAGE.SAMPLE_BITS"');
+            end
         otherwise
             error('The data type: %s is not supported.',lbl.OBJECT_IMAGE.SAMPLE_TYPE);
     end
