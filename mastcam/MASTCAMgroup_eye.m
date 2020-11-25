@@ -26,18 +26,30 @@ classdef MASTCAMgroup_eye < dynamicprops
         CAM_MDL_GEO % CAMERA MODEL in a geographic coordinate system
         L_im
         S_im
+        DRXX
+        DRCX
+        DRLX
+        DRCL
+        AXI1
         addedProps
     end
     
     methods
         function obj = MASTCAMgroup_eye()
+            obj.DRXX = MASTCAMgroupDRXX();
+            obj.DRCX = MASTCAMgroupDRCX();
+            obj.DRLX = MASTCAMgroupDRLX();
+            obj.DRCL = MASTCAMgroupDRCL();
+            obj.AXI1 = MASTCAMgroupAXIX(1);
             
+            % obj.PRODUCT_ID = struct('DRXX',[],'DRCX',[],'DRLX',[],...
+            %     'DRCL',[],'AXI1',[]);
         end
         
         function append(obj,mst_obj)
             % input check
-            if ~isa(mst_obj,'MASTCAMdata')
-                error('INPUT must be an object of MASTCAMdata class');
+            if ~isa(mst_obj,'MASTCAMdata') && ~isa(mst_obj,'MASTCAMdataAXIX')
+                error('INPUT must be an object of MASTCAMdata class or MASTCAMdataAXIX');
             end
             % check the data is appropriate or not first
             if isempty(obj.PRODUCT_ID)
@@ -62,40 +74,87 @@ classdef MASTCAMgroup_eye < dynamicprops
             
             % append the data to an appropirate branch
             % add a dynamic property if the 
-            if ~isprop(obj,mst_obj.prop.product_type)
-                addprop(obj,mst_obj.prop.product_type);
-                obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) = mst_obj;
-                obj.addedProps = [obj.addedProps {mst_obj.prop.product_type}];
+            data_proc_code = mst_obj.prop.data_proc_code;
+            if isprop(obj,data_proc_code)
+                obj.(data_proc_code).append(mst_obj);
             else
-                if isfield(obj.(mst_obj.prop.product_type),mst_obj.prop.data_proc_code)
-                    obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code)...
-                        = [obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) mst_obj];
-                else
-                    obj.(mst_obj.prop.product_type).(mst_obj.prop.data_proc_code) = mst_obj;
-                end
+                error('DATA_PROC_CODE %s is undefined.',data_proc_code);
             end
+            
+%             if isfield(obj.PRODUCT_ID,data_proc_code)
+%                 if isempty(obj.obj.PRODUCT_ID.(data_proc_code))
+%                     
+%             
+%             if ~isprop(obj,data_proc_code)
+%                 
+%                 obj.(data_proc_code).(product_type) = mst_obj;
+%                 obj.addedProps = [obj.addedProps {data_proc_code}];
+%                 obj.PRODUCT_ID.(data_proc_code) = [];
+%                 obj.PRODUCT_ID.(data_proc_code).(product_type) = mst_obj.PRODUCT_ID;
+%             else
+%                 
+%                     
+%                     obj.PRODUCT_ID.(data_proc_code).(product_type) = ...
+%                         [obj.PRODUCT_ID.(data_proc_code).(product_type) {mst_obj.PRODUCT_ID}];
+%                 else
+%                     obj.(data_proc_code).(product_type) = mst_obj;
+%                     obj.PRODUCT_ID.(data_proc_code).(product_type) = mst_obj.PRODUCT_ID;
+%                 end
+%             end
 
         end
-        function [] = get_CAM_MDL_GEO(obj)
-            [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
-                [obj.L_im,obj.S_im],obj.CAM_MDL);
-            cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
-            cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
-            imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.L_im*obj.S_im,3])';
-            imxy_direc_rov0_2d = obj.ROVER_NAV.rot_mat * imxy_direc_rov_2d;
-            imxy_direc_rov0 = reshape(imxy_direc_rov0_2d',[obj.L_im,obj.S_im,3]);
-            cmmdl_C_geo = cmmdl_C_rov0 + [obj.ROVER_NAV.NORTHING; 
-                              obj.ROVER_NAV.EASTING;
-                              -obj.ROVER_NAV.ELEVATION];
-                          
-            obj.CAM_MDL_GEO.A_rov0 = cmmdl_A_rov0';
-            obj.CAM_MDL_GEO.C_rov0 = cmmdl_C_rov0';
-            obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo';
-            obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
-            obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
-            
-        end
+%         function [] = get_CAM_MDL_GEO(obj)
+%             [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
+%                 [obj.L_im,obj.S_im],obj.CAM_MDL);
+%             cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
+%             cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
+%             imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.L_im*obj.S_im,3])';
+%             imxy_direc_rov0_2d = obj.ROVER_NAV.rot_mat * imxy_direc_rov_2d;
+%             imxy_direc_rov0 = reshape(imxy_direc_rov0_2d',[obj.L_im,obj.S_im,3]);
+%             cmmdl_C_geo = cmmdl_C_rov0 + [obj.ROVER_NAV.NORTHING; 
+%                               obj.ROVER_NAV.EASTING;
+%                               -obj.ROVER_NAV.ELEVATION];
+%                           
+%             obj.CAM_MDL_GEO.A_rov0 = cmmdl_A_rov0';
+%             obj.CAM_MDL_GEO.C_rov0 = cmmdl_C_rov0';
+%             obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo';
+%             obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
+%             obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
+%             
+%         end
         
+%         function append_AXIX(obj,basename,varargin)
+%             mstaidata_obj = mastcam_get_AXIXdata(basename,obj,varargin{:});
+%             obj.append(mstaidata_obj);
+%             % fpath = joinPath(dirpath,[basename '.IMG']);
+%             % propA6I1 = get_basenameMASTCAM_fromProp(basename);
+% 
+%         end
+        
+        function load_AXIX(obj,varargin)
+            vr_AXIX = 1;
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for i=1:2:(length(varargin)-1)
+                    switch upper(varargin{i})
+                        case 'VEERSION'
+                            vr_AXIX = varargin{i+1};
+                    end
+                end
+            end
+            if isnumeric(vr_AXIX), vr_AXIX = num2str(vr_AXIX,'%1d'); end
+            propname = sprintf('AXI%s',vr_AXIX);
+            if ~isempty(obj.DRXX)
+                for i=1:length(obj.DRXX.D)
+                    [mstaxixdata] = mastcam_get_AXIXdata_from_ref(obj.DRXX.D(i),varargin{:});
+                    obj.(propname).append(mstaxixdata);
+                end
+                [mstaxixdata] = mastcam_get_AXIXdata_from_ref(obj.DRXX.E,varargin{:});
+                obj.(propname).append(mstaxixdata);
+            end
+        end
+
         function delete(obj)
             if ~isempty(obj.RMC)
                 delete(obj.RMC);
@@ -106,18 +165,14 @@ classdef MASTCAMgroup_eye < dynamicprops
             if ~isempty(obj.CAM_MDL)
                 delete(obj.CAM_MDL);
             end
-            % if ~isempty(obj.CAM_MDL_GEO) && isvalid(obj.CAM_MDL_GEO)
-            %     delete(obj.CAM_MDL_GEO);
-            % end
+            delete(obj.DRXX);
+            delete(obj.DRCX);
+            delete(obj.DRLX);
+            delete(obj.DRCL);
+            delete(obj.AXI1);
             for i=1:length(obj.addedProps)
                 propi = obj.addedProps{i};
-                fldnms = fieldnames(obj.(propi));
-                for j=1:length(fldnms)
-                    fldnm = fldnms{j};
-                    for k=1:length(obj.(propi).(fldnm))
-                        delete(obj.(propi).(fldnm)(k));
-                    end
-                end
+                delete(obj.(propi));
             end
             
         end

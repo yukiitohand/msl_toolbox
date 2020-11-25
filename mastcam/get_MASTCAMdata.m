@@ -38,6 +38,7 @@ dwld = 0;
 vb   = 1;
 
 rover_nav_ver = 'localized_interp';
+rover_nav_mstcam_code = '';
 
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
@@ -82,6 +83,8 @@ else
                     vb = varargin{i+1};
                 case {'ROVER_NAV_VERSION','ROVER_NAV_VER'}
                     rover_nav_ver = varargin{i+1};
+                case 'ROVER_NAV_MSTCAM_CODE'
+                    rover_nav_mstcam_code = varargin{i+1};
                 otherwise
                     error('Unrecognized option: %s', varargin{i});   
             end
@@ -181,7 +184,25 @@ if isempty(basename)
             if isempty(extractMatchedBasename_v2(basename,[{fnamelist.name}],'exact',0))
                 pds_msl_imaging_downloader(subdir,'basenameptrn',basename,'dwld',dwld);
             end
-            mastcamdata_i = MASTCAMdata(basename,dpath,'ROVER_NAV_VERSION',rover_nav_ver);
+            prop = getProp_basenameMASTCAM(basename);
+            switch upper(prop.data_proc_code)
+                case 'DRXX'
+                    mastcamdata_i = MASTCAMdataDRXX(basename,dpath,...
+                    'ROVER_NAV_VERSION',rover_nav_ver,'ROVER_NAV_MSTCAM_CODE',rover_nav_mstcam_code);
+                case 'DRCX'
+                    mastcamdata_i = MASTCAMdataDRCX(basename,dpath,...
+                    'ROVER_NAV_VERSION',rover_nav_ver,'ROVER_NAV_MSTCAM_CODE',rover_nav_mstcam_code);
+                case 'DRLX'
+                    mastcamdata_i = MASTCAMdataDRLX(basename,dpath,...
+                    'ROVER_NAV_VERSION',rover_nav_ver,'ROVER_NAV_MSTCAM_CODE',rover_nav_mstcam_code);
+                case 'DRCL'
+                    mastcamdata_i = MASTCAMdataDRCL(basename,dpath,...
+                    'ROVER_NAV_VERSION',rover_nav_ver,'ROVER_NAV_MSTCAM_CODE',rover_nav_mstcam_code);
+                otherwise
+                    error('Undefined DATA_PROC_CODE %s',upper(prop.data_proc_code));
+            end
+                % mastcamdata_i = class_mstdata(basename,dpath,...
+                %     'ROVER_NAV_VERSION',rover_nav_ver,'ROVER_NAV_MSTCAM_CODE',rover_nav_mstcam_code);
             MASTCAMgroup_u.append(mastcamdata_i);
         end
         MASTCAMgroupList = [MASTCAMgroupList,MASTCAMgroup_u];

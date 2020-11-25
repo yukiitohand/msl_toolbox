@@ -52,6 +52,18 @@ classdef MASTCAMgroup < handle
             obj.(mst_eye).append(mst_obj);
         end
         
+        function append_AXIX(obj,basename,varargin)
+            propAXIX = get_basenameMASTCAM_fromProp(basename);
+            switch upper(propAXIX.cam_code)
+                case 'ML'
+                    obj.L.add_AXIX(basename,varargin{:});
+                case 'MR'
+                    obj.R.add_AXIX(basename,varargin{:});
+                otherwise
+                    error('Something wrong with basename %s.',basename);
+            end
+        end
+        
         function delete(obj)
             if ~isempty(obj.L)
                 delete(obj.L);
