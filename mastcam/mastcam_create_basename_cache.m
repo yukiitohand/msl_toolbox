@@ -14,6 +14,7 @@ function [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,va
 
 
 rover_nav_vr = '';
+cam_code = '';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -21,6 +22,8 @@ else
         switch upper(varargin{i})
             case {'ROVER_NAV_VERSION'}
                 rover_nav_vr = varargin{i+1};
+            case 'CAM_CODE'
+                cam_code = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
@@ -37,7 +40,10 @@ else
     productID_repre = mastcamdata_obj.PRODUCT_ID;
 end
 propMASTCAMdata = getProp_basenameMASTCAM(productID_repre);
-cam_code = propMASTCAMdata.cam_code;
+
+if isempty(cam_code)
+    cam_code = propMASTCAMdata.cam_code;
+end
 if isnumeric(propMASTCAMdata.sol)
     sol = sprintf('%04d',propMASTCAMdata.sol);
 end
