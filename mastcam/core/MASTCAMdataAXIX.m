@@ -18,6 +18,7 @@ classdef MASTCAMdataAXIX < HSI
         MASTCAMdata_ref % referenced mastcam data
         RADIANCE_FACTOR
         RADIANCE_OFFEST
+        imgIoF
     end
     
     methods
@@ -57,11 +58,11 @@ classdef MASTCAMdataAXIX < HSI
             varargin_HSI = varargin(setdiff(1:length(varargin),varargin_rmidx));
             obj@HSI(basename,dirpath,varargin_HSI{:});
             obj.lblpath = joinPath(dirpath,[basename '.IMG']);
-            [obj.lbl,posend] = pds3lblread(obj.lblpath);
+            [obj.lbl] = pds3lblread(obj.lblpath);
                 
             obj.hdr = mastcam_extract_imghdr_from_lbl(obj.lbl);
-            lbytes = obj.hdr.samples * get_bytes_envi_data_type(obj.hdr.data_type);
-            obj.hdr.header_offset = ceil(posend/lbytes)*lbytes;
+            % lbytes = obj.hdr.samples * get_bytes_envi_data_type(obj.hdr.data_type);
+            % obj.hdr.header_offset = obj.lbl.LABEL_RECORDS*obj.lbl.RECORD_BYTES;
             obj.L_im = obj.hdr.lines;
             obj.S_im = obj.hdr.samples;
             
@@ -167,6 +168,7 @@ classdef MASTCAMdataAXIX < HSI
                 otherwise
                     img_iof = obj.RADIANCE_FACTOR .* obj.img + obj.RADIANCE_OFFEST;
             end
+            obj.imgIoF = img_iof;
         end
         
         function delete(obj)

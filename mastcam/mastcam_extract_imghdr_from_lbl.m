@@ -55,7 +55,11 @@ else
             error('The interleave: %s is not supported.',lbl.OBJECT_IMAGE.BAND_STORAGE_TYPE);
     end
     
-    hdr_info.header_offset = 0;
+    if isfield(lbl,'POINTER_IMAGE') && isnumeric(lbl.POINTER_IMAGE)
+        hdr_info.header_offset = (lbl.POINTER_IMAGE-1) * lbl.RECORD_BYTES;
+    else
+        hdr_info.header_offset = 0;
+    end
     % hdr_info.header_offset = img_obj.RECORD_BYTES;
     
     if isfield(lbl.OBJECT_IMAGE,'BAND_NAME')
