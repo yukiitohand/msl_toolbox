@@ -133,7 +133,7 @@ classdef MASTCAMgroup_eye < dynamicprops
             
         end
         
-        function [mstmsi] = MASTCAMMSIContructor(obj,data_proc_code,varargin)
+        function [mstmsi] = MASTCAMMSIConstructor(obj,data_proc_code,varargin)
             priority_dtype_list0 = {'E','C'};
             switch upper(data_proc_code)
                 case {'DRXX','AXI1'}
