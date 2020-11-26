@@ -49,6 +49,9 @@ classdef MASTCAMgroup_wProcCode < dynamicprops
                     end
                 end
             end
+            
+            
+            
         end
         
         function append(obj,mst_obj)

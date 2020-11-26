@@ -12,10 +12,10 @@ classdef MASTCAMdata < HSI
         ROVER_NAV
         CAM_MDL_GEO
         FILTER_NUMBER
-        RADIANCE_FACTOR
         INSTRUMENT_ID
         L_im
         S_im
+        EYE
     end
     
     methods
@@ -53,7 +53,6 @@ classdef MASTCAMdata < HSI
                 'MSTCAM_CODE',rover_nav_mstcode);
             obj.get_filter_number();
             obj.get_instrument_id();
-            obj.get_radiance_factor();
             obj.L_im = obj.hdr.lines;
             obj.S_im = obj.hdr.samples;
         end
@@ -97,62 +96,11 @@ classdef MASTCAMdata < HSI
             obj.FILTER_NUMBER = obj.lbl.GROUP_IMAGE_REQUEST_PARMS.FILTER_NUMBER;
         end
         
-        function get_radiance_factor(obj)
-            rf_raw = obj.lbl.GROUP_PROCESSING_PARMS.RADIANCE_SCALING_FACTOR;
-            switch obj.INSTRUMENT_ID
-                case 'MAST_LEFT'
-                    switch obj.FILTER_NUMBER
-                        case 0
-                            obj.RADIANCE_FACTOR = rf_raw;
-                        case 1
-                            obj.RADIANCE_FACTOR = rf_raw(2);
-                        case 2
-                            obj.RADIANCE_FACTOR = rf_raw(3);
-                        case 3
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 4
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 5
-                            % should be same for all elements
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 6
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                    end
-                    
-                case 'MAST_RIGHT'
-                    switch obj.FILTER_NUMBER
-                        case 0
-                            obj.RADIANCE_FACTOR = rf_raw;
-                        case 1
-                            obj.RADIANCE_FACTOR = rf_raw(2);
-                        case 2
-                            obj.RADIANCE_FACTOR = rf_raw(3);
-                        case 3
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 4
-                            % should be same for all elements
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 5
-                            % should be same for all elements
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                        case 6
-                            % should be same for all elements
-                            obj.RADIANCE_FACTOR = rf_raw(1);
-                    end
-            end
-        end
         
-%         function [img_iof] = get_IoF(obj)
-%             if isempty(obj.img)
-%                 obj.readimg();
-%             end
-%             switch obj.FILTER_NUMBER
-%                 case 0
-%                     img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* obj.img;
-%                 otherwise
-%                     img_iof = obj.RADIANCE_FACTOR .* obj.img;
-%             end
-%         end
+        
+        
+
+
         
         function delete(obj)
             delete(obj.CAM_MDL);

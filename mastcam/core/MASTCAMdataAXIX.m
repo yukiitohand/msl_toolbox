@@ -17,8 +17,8 @@ classdef MASTCAMdataAXIX < HSI
         S_im
         MASTCAMdata_ref % referenced mastcam data
         RADIANCE_FACTOR
-        RADIANCE_OFFEST
-        imgIoF
+        RADIANCE_OFFSET
+        % imgIoF
     end
     
     methods
@@ -65,6 +65,7 @@ classdef MASTCAMdataAXIX < HSI
             % obj.hdr.header_offset = obj.lbl.LABEL_RECORDS*obj.lbl.RECORD_BYTES;
             obj.L_im = obj.hdr.lines;
             obj.S_im = obj.hdr.samples;
+            obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
             
             if ~isempty(mstdata_ref)
                 % obj.lblpath = joinPath(dirpath,[basename '.lbl']);
@@ -88,6 +89,8 @@ classdef MASTCAMdataAXIX < HSI
                 
                 obj.MASTCAMdata_ref = mstdata_ref;
             end
+            
+            obj.get_radiance_factor();
             
             
         end
@@ -152,23 +155,48 @@ classdef MASTCAMdataAXIX < HSI
             obj.FILTER_NUMBER = obj.MASTCAMdata_ref.get_filter_number();
         end
         
-        
         function get_radiance_factor(obj)
             obj.RADIANCE_FACTOR = obj.lbl.OBJECT_IMAGE.SCALING_FACTOR;
             obj.RADIANCE_OFFSET = obj.lbl.OBJECT_IMAGE.OFFSET;
         end
         
-        function [img_iof] = get_IoF(obj)
-            if isempty(obj.img)
-                obj.readimg();
+        function [img] = readimg(obj,varargin)
+            dtype = 'IoF';
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for i=1:2:(length(varargin)-1)
+                    switch upper(varargin{i})
+                        case 'DATATYPE'
+                           dtype  = varargin{i+1};
+                        otherwise
+                            error('Unrecognized option: %s',varargin{i});
+                    end
+                end
             end
+            switch upper(dtype)
+                case 'RAW'
+                    [img] = obj.readimg@HSI();
+                case {'IOF','IF'}
+                    [img] = obj.get_IoF();
+                otherwise
+                    error('Undefined datatype %s.',dtype);
+            end
+            if nargout<1
+                obj.img = img;
+            end
+            
+        end
+        
+        function [img_iof] = get_IoF(obj)
+            img_raw = obj.readimg('DATATYPE','RAW');
             switch obj.FILTER_NUMBER
                 case 0
-                    img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* obj.img + reshape(obj.RADIANCE_OFFEST,[1,1,3]);
+                    img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* img_raw + reshape(obj.RADIANCE_OFFSET,[1,1,3]);
                 otherwise
-                    img_iof = obj.RADIANCE_FACTOR .* obj.img + obj.RADIANCE_OFFEST;
+                    img_iof = obj.RADIANCE_FACTOR .* img_raw + obj.RADIANCE_OFFEST;
             end
-            obj.imgIoF = img_iof;
+            % obj.imgIoF = img_iof;
         end
         
         function delete(obj)

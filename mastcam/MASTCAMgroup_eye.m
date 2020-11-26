@@ -80,29 +80,94 @@ classdef MASTCAMgroup_eye < dynamicprops
             else
                 error('DATA_PROC_CODE %s is undefined.',data_proc_code);
             end
-            
-%             if isfield(obj.PRODUCT_ID,data_proc_code)
-%                 if isempty(obj.obj.PRODUCT_ID.(data_proc_code))
-%                     
-%             
-%             if ~isprop(obj,data_proc_code)
-%                 
-%                 obj.(data_proc_code).(product_type) = mst_obj;
-%                 obj.addedProps = [obj.addedProps {data_proc_code}];
-%                 obj.PRODUCT_ID.(data_proc_code) = [];
-%                 obj.PRODUCT_ID.(data_proc_code).(product_type) = mst_obj.PRODUCT_ID;
-%             else
-%                 
-%                     
-%                     obj.PRODUCT_ID.(data_proc_code).(product_type) = ...
-%                         [obj.PRODUCT_ID.(data_proc_code).(product_type) {mst_obj.PRODUCT_ID}];
-%                 else
-%                     obj.(data_proc_code).(product_type) = mst_obj;
-%                     obj.PRODUCT_ID.(data_proc_code).(product_type) = mst_obj.PRODUCT_ID;
-%                 end
-%             end
 
         end
+        
+        function load_AXIX(obj,varargin)
+            vr_AXIX = 1;
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for i=1:2:(length(varargin)-1)
+                    switch upper(varargin{i})
+                        case 'VEERSION'
+                            vr_AXIX = varargin{i+1};
+                    end
+                end
+            end
+            if isnumeric(vr_AXIX), vr_AXIX = num2str(vr_AXIX,'%1d'); end
+            propname = sprintf('AXI%s',vr_AXIX);
+            if ~isempty(obj.DRXX)
+                dtype_list = {'E','D','C'};
+                for j=1:length(dtype_list)
+                    dtypej = dtype_list{j};
+                    if isprop(obj.DRXX,dtypej) && ~isempty(obj.DRXX.(dtypej))
+                        for i=1:length(obj.DRXX.(dtypej))
+                            [mstaxixdata] = mastcam_get_AXIXdata_from_ref(obj.DRXX.(dtypej)(i),varargin{:});
+                            obj.(propname).append(mstaxixdata);
+                        end
+                    end
+                end
+            end
+        end
+
+        function delete(obj)
+            if ~isempty(obj.RMC)
+                delete(obj.RMC);
+            end
+            if ~isempty(obj.ROVER_NAV)
+                delete(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.CAM_MDL)
+                delete(obj.CAM_MDL);
+            end
+            delete(obj.DRXX);
+            delete(obj.DRCX);
+            delete(obj.DRLX);
+            delete(obj.DRCL);
+            delete(obj.AXI1);
+            for i=1:length(obj.addedProps)
+                propi = obj.addedProps{i};
+                delete(obj.(propi));
+            end
+            
+        end
+        
+        function [mstmsi] = MASTCAMMSIContructor(obj,data_proc_code,varargin)
+            priority_dtype_list0 = {'E','C'};
+            switch upper(data_proc_code)
+                case {'DRXX','AXI1'}
+                    mstdata_ColorCor = find_MASTCAMdata_Filterk(obj.DRCX,0,priority_dtype_list0);
+                case {'DRLX'}
+                    mstdata_ColorCor = find_MASTCAMdata_Filterk(obj.DRCL,0,priority_dtype_list0);
+                otherwise
+                    mstdata_ColorCor = [];
+            end
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for i=1:2:(length(varargin)-1)
+                    switch upper(varargin{i})
+                        case {'MASTCAMCOLORCOR'}
+                            mstdata_ColorCor = varargin{i+1};
+                        otherwise
+                            error('Unrecognized option: %s',varargin{i});
+                    end
+                end
+            end
+            
+            switch upper(data_proc_code)
+                case {'DRXX','DRLX','AXI1'}
+                    mstmsi = MASTCAMMSI(obj.(data_proc_code),...
+                        'MASTCAMColorCor',mstdata_ColorCor);
+                case {'DRCL','DRCX'}
+                    error('Does not make sense to contruct MSI for color corrected images.');
+                otherwise
+                    error('Undefined DATA_PROC_CODE %s.',data_proc_code);
+            end
+            
+        end
+        
 %         function [] = get_CAM_MDL_GEO(obj)
 %             [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
 %                 [obj.L_im,obj.S_im],obj.CAM_MDL);
@@ -130,52 +195,6 @@ classdef MASTCAMgroup_eye < dynamicprops
 %             % propA6I1 = get_basenameMASTCAM_fromProp(basename);
 % 
 %         end
-        
-        function load_AXIX(obj,varargin)
-            vr_AXIX = 1;
-            if (rem(length(varargin),2)==1)
-                error('Optional parameters should always go by pairs');
-            else
-                for i=1:2:(length(varargin)-1)
-                    switch upper(varargin{i})
-                        case 'VEERSION'
-                            vr_AXIX = varargin{i+1};
-                    end
-                end
-            end
-            if isnumeric(vr_AXIX), vr_AXIX = num2str(vr_AXIX,'%1d'); end
-            propname = sprintf('AXI%s',vr_AXIX);
-            if ~isempty(obj.DRXX)
-                for i=1:length(obj.DRXX.D)
-                    [mstaxixdata] = mastcam_get_AXIXdata_from_ref(obj.DRXX.D(i),varargin{:});
-                    obj.(propname).append(mstaxixdata);
-                end
-                [mstaxixdata] = mastcam_get_AXIXdata_from_ref(obj.DRXX.E,varargin{:});
-                obj.(propname).append(mstaxixdata);
-            end
-        end
-
-        function delete(obj)
-            if ~isempty(obj.RMC)
-                delete(obj.RMC);
-            end
-            if ~isempty(obj.ROVER_NAV)
-                delete(obj.ROVER_NAV);
-            end
-            if ~isempty(obj.CAM_MDL)
-                delete(obj.CAM_MDL);
-            end
-            delete(obj.DRXX);
-            delete(obj.DRCX);
-            delete(obj.DRLX);
-            delete(obj.DRCL);
-            delete(obj.AXI1);
-            for i=1:length(obj.addedProps)
-                propi = obj.addedProps{i};
-                delete(obj.(propi));
-            end
-            
-        end
         
     end
 end

@@ -26,9 +26,10 @@ classdef MASTCAMgroupDRCX < MASTCAMgroup_wProcCode
                 'DRCX','MEMBER_CLASS_NAME','MASTCAMdataDRCX');
         end
         
-        function [imrgb] = get_rgb(obj)
-            imrgb = obj.E.readimg();
-            imrgb = uint8(imrgb);
+        function [imrgb] = get_rgb(obj,varargin)
+            priority_dtype_list0 = {'E','C'};
+            mstdata0 = find_MASTCAMdata_Filterk(obj,0,priority_dtype_list0);
+            imrgb = mstdata0.readimg('datatype','uint8');
         end
     end
 end

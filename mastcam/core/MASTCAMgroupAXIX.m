@@ -36,5 +36,13 @@ classdef MASTCAMgroupAXIX < MASTCAMgroup_wProcCode
             tf = ~isempty(regexpi(mst_obj.prop.data_proc_code,obj.DATA_PROC_CODE_PTRN,'once'));
         end
         
+        function [imrgb] = get_rgb(obj,varargin)
+            tol = 0;
+            priority_dtype_list0 = {'E','C'};
+            mstdata0 = find_MASTCAMdata_Filterk(obj,0,priority_dtype_list0);
+            imrgb = mstdata0.readimg('datatype','IoF');
+            imrgb = RGBImage(imrgb,'Tol',tol);
+        end
+        
     end
 end
