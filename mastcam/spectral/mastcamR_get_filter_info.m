@@ -1,14 +1,8 @@
 function [mstR_filter_info] = mastcamR_get_filter_info()
 
-mstR_filter_info.R0Red = [];
-mstR_filter_info.R0Red.wv_ctr = 638;
-mstR_filter_info.R0Red.HWHM = 44;
-mstR_filter_info.R0Green = [];
-mstR_filter_info.R0Green.wv_ctr = 551;
-mstR_filter_info.R0Green.HWHM = 39;
-mstR_filter_info.R0Blue = [];
-mstR_filter_info.R0Blue.wv_ctr = 493;
-mstR_filter_info.R0Blue.HWHM = 38;
+mstR_filter_info.R0 = [];
+mstR_filter_info.R0.wv_ctr = [638 551 493];
+mstR_filter_info.R0.HWHM   = [ 44  39  38];
 mstR_filter_info.R1 = [];
 mstR_filter_info.R1.wv_ctr = 527;
 mstR_filter_info.R1.HWHM = 7;
