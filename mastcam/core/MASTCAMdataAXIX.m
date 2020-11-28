@@ -18,6 +18,7 @@ classdef MASTCAMdataAXIX < HSI
         MASTCAMdata_ref % referenced mastcam data
         RADIANCE_FACTOR
         RADIANCE_OFFSET
+        Linearization
         % imgIoF
     end
     
@@ -90,6 +91,7 @@ classdef MASTCAMdataAXIX < HSI
                 obj.MASTCAMdata_ref = mstdata_ref;
             end
             
+            obj.Linearization = 0;
             obj.get_radiance_factor();
             
             

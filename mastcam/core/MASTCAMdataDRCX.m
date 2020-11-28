@@ -9,6 +9,7 @@ classdef MASTCAMdataDRCX < MASTCAMdata
     methods
         function obj = MASTCAMdataDRCX(basename,dirpath,varargin)
             obj@MASTCAMdata(basename,dirpath,varargin{:});
+            obj.Linearization = 0;
         end
         
         function [img] = readimg(obj,varargin)

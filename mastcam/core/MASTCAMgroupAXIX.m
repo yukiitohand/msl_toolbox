@@ -30,6 +30,7 @@ classdef MASTCAMgroupAXIX < MASTCAMgroup_wProcCode
             obj@MASTCAMgroup_wProcCode(...
                 data_proc_code,'MEMBER_CLASS_NAME','MASTCAMdataAXIX');
             obj.DATA_PROC_CODE_PTRN = data_proc_code_ptrn;
+            obj.Linearization = 0;
         end
         
         function [tf] = compare_DATA_PROC_CODE(obj,mst_obj)

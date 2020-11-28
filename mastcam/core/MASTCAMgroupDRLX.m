@@ -24,6 +24,7 @@ classdef MASTCAMgroupDRLX < MASTCAMgroup_wProcCode
         function obj = MASTCAMgroupDRLX()
             obj@MASTCAMgroup_wProcCode(...
                 'DRLX','MEMBER_CLASS_NAME','MASTCAMdataDRLX');
+            obj.Linearization = 1;
         end
         
         function [imrgb] = get_rgb(obj,varargin)

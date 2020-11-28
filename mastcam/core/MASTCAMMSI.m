@@ -3,6 +3,9 @@ classdef MASTCAMMSI < dynamicprops
     %   
     
     properties
+        % eye
+        % RMC
+        % Linearization
         MASTCAMgroup_wpc
         % filternames
         filter_info
@@ -16,6 +19,9 @@ classdef MASTCAMMSI < dynamicprops
     
     methods
         function obj = MASTCAMMSI(mstgrp_wpc,varargin)
+            % obj.eye = mstgrp_wpc.eye;
+            % obj.RMC = mstgrp_wpc.RMC;
+            % obj.Linearization = mstgrp_wpc.Linearization;
             
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');

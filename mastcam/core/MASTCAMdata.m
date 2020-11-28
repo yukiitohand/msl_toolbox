@@ -16,6 +16,7 @@ classdef MASTCAMdata < HSI
         L_im
         S_im
         EYE
+        Linearization
     end
     
     methods

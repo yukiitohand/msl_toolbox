@@ -10,6 +10,7 @@ classdef MASTCAMdataDRXX < MASTCAMdata
     methods
         function obj = MASTCAMdataDRXX(basename,dirpath,varargin)
             obj@MASTCAMdata(basename,dirpath,varargin{:});
+            obj.Linearization = 0;
             obj.get_radiance_factor();
         end
         

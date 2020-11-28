@@ -9,6 +9,7 @@ classdef MASTCAMdataDRCL < MASTCAMdata
     methods
         function obj = MASTCAMdataDRCL(basename,dirpath,varargin)
             obj@MASTCAMdata(basename,dirpath,varargin{:});
+            obj.Linearization = 1;
         end
         
         function [img] = readimg(obj,varargin)

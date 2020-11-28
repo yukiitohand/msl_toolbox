@@ -26,6 +26,7 @@ classdef MASTCAMgroup_wProcCode < dynamicprops
         CAM_MDL_GEO % CAMERA MODEL in a geographic coordinate system
         L_im
         S_im
+        Linearization
         addedProps
         member_class_name
         C
@@ -139,6 +140,15 @@ classdef MASTCAMgroup_wProcCode < dynamicprops
                 tf = any(cellfun(@(x) isa(mst_obj,x), obj.member_class_name));
             else
                 tf = isa(mst_obj,obj.member_class_name);
+            end
+        end
+        
+        function [tf] = isSameScene(mstgrp_wpc)
+            if strcmpi(obj.eye,mstgrp_wpc.eye) && obj.RMC == mstgrp_wpc.RMC ...
+                && obj.Linearization == mstgrp_wpc.Linearization
+                tf = true;
+            else
+                tf - false;
             end
         end
         
