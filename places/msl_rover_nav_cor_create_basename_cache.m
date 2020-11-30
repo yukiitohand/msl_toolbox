@@ -11,6 +11,7 @@ function [basename_cache_rovnav] = msl_rover_nav_cor_create_basename_cache(mastc
 %   basename_cache_rovnav: basename of rover cache file
 
 mstcam_code = '';
+lr = [];
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -20,6 +21,8 @@ else
             %     rover_nav_vr = varargin{i+1};
             case 'MSTCAM_CODE'
                 mstcam_code = varargin{i+1};
+            case 'LINEARIZATION'
+                lr = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
@@ -27,6 +30,6 @@ else
 end
 
 [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,...
-    'ROVER_NAV_VERSION',rover_nav_vr,'CAM_CODE',mstcam_code);
+    'ROVER_NAV_VERSION',rover_nav_vr,'CAM_CODE',mstcam_code,'Linearization',lr);
 basename_cache_rovnav = [basename_cache_com '_ROVER_NAV'];
 end

@@ -24,7 +24,9 @@ classdef MASTCAMdata < HSI
             
             rover_nav_ver = 'localized_interp';
             rover_nav_mstcode = '';
+            rover_nav_lr = [];
             varargin_rmidx = [];
+            lr = [];
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
             else
@@ -35,6 +37,12 @@ classdef MASTCAMdata < HSI
                             varargin_rmidx = [varargin_rmidx i i+1];
                         case 'ROVER_NAV_MSTCAM_CODE'
                             rover_nav_mstcode = varargin{i+1};
+                            varargin_rmidx = [varargin_rmidx i i+1];
+                        case 'ROVER_NAV_LINEARIZATION'
+                            rover_nav_lr = varargin{i+1};
+                            varargin_rmidx = [varargin_rmidx i i+1];
+                        case 'LINEARIZATION'
+                            lr = varargin{i+1};
                             varargin_rmidx = [varargin_rmidx i i+1];
                         otherwise
                             error('Unrecognized option: %s',varargin{i});
@@ -47,11 +55,12 @@ classdef MASTCAMdata < HSI
             obj.lbl = pds3lblread(obj.lblpath);
             obj.hdr = mastcam_extract_imghdr_from_lbl(obj.lbl);
             obj.prop = getProp_basenameMASTCAM(basename);
+            obj.Linearization = lr;
             obj.CAM_MDL = get_cammera_model(obj);
             obj.RMC = get_rmc(obj);
             obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
             obj.ROVER_NAV  = obj.get_rover_nav('VERSION',rover_nav_ver,...
-                'MSTCAM_CODE',rover_nav_mstcode);
+                'MSTCAM_CODE',rover_nav_mstcode,'LINEARIZATION',rover_nav_lr);
             obj.get_filter_number();
             obj.get_instrument_id();
             obj.L_im = obj.hdr.lines;

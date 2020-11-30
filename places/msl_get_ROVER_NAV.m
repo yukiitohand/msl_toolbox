@@ -51,6 +51,7 @@ cachedirpath = msl_env_vars.dirpath_cache;
 
 rover_nav_ver = 'localized_interp';
 rover_nav_mstcam_code = '';
+rover_nav_lr = [];
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -60,6 +61,8 @@ else
                 rover_nav_ver = varargin{i+1};
             case {'MSTCAM_CODE'}
                 rover_nav_mstcam_code = varargin{i+1};
+            case {'LINEARIZATION'}
+                rover_nav_lr = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
@@ -78,7 +81,8 @@ switch lower(rover_nav_ver)
         option = [];
     otherwise
         [basename_cache_rovnav] = msl_rover_nav_cor_create_basename_cache(...
-            mastcamdata_obj,rover_nav_ver,'MSTCAM_CODE',rover_nav_mstcam_code);
+            mastcamdata_obj,rover_nav_ver,'MSTCAM_CODE',rover_nav_mstcam_code,...
+            'LINEARIZATION',rover_nav_lr);
         cachepath = joinPath(cachedirpath,[basename_cache_rovnav '.mat']);
         if exist(cachepath,'file')
             load(cachepath,'rover_nav','option');

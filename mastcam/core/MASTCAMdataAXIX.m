@@ -30,6 +30,7 @@ classdef MASTCAMdataAXIX < HSI
             
             rover_nav_ver = 'localized_interp';
             rover_nav_mstcode = '';
+            rover_nav_lr = [];
             mstdata_ref = [];
             varargin_rmidx = [];
             if (rem(length(varargin),2)==1)
@@ -42,6 +43,9 @@ classdef MASTCAMdataAXIX < HSI
                             varargin_rmidx = [varargin_rmidx i i+1];
                         case 'ROVER_NAV_MSTCAM_CODE'
                             rover_nav_mstcode = varargin{i+1};
+                            varargin_rmidx = [varargin_rmidx i i+1];
+                        case 'ROVER_NAV_LINEARIZATION'
+                            rover_nav_lr = varargin{i+1};
                             varargin_rmidx = [varargin_rmidx i i+1];
                         case {'MASTCAMDATA_REF'}
                             mstdata_ref = varargin{i+1};
@@ -67,6 +71,7 @@ classdef MASTCAMdataAXIX < HSI
             obj.L_im = obj.hdr.lines;
             obj.S_im = obj.hdr.samples;
             obj.PRODUCT_ID = obj.lbl.PRODUCT_ID;
+            obj.Linearization = 0;
             
             if ~isempty(mstdata_ref)
                 % obj.lblpath = joinPath(dirpath,[basename '.lbl']);
@@ -91,7 +96,6 @@ classdef MASTCAMdataAXIX < HSI
                 obj.MASTCAMdata_ref = mstdata_ref;
             end
             
-            obj.Linearization = 0;
             obj.get_radiance_factor();
             
             

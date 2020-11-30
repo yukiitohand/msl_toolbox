@@ -9,8 +9,7 @@ classdef MASTCAMdataDRLX < MASTCAMdata
     
     methods
         function obj = MASTCAMdataDRLX(basename,dirpath,varargin)
-            obj@MASTCAMdata(basename,dirpath,varargin{:});
-            obj.Linearization = 1;
+            obj@MASTCAMdata(basename,dirpath,varargin{:},'LINEARIZATION',1);
             obj.get_radiance_factor();
         end
         
@@ -53,7 +52,7 @@ classdef MASTCAMdataDRLX < MASTCAMdata
                 case 0
                     img_iof = reshape(obj.RADIANCE_FACTOR,[1,1,3]) .* img_raw + reshape(obj.RADIANCE_OFFSET,[1,1,3]);
                 otherwise
-                    img_iof = obj.RADIANCE_FACTOR .* img_raw + obj.RADIANCE_OFFEST;
+                    img_iof = obj.RADIANCE_FACTOR .* img_raw + obj.RADIANCE_OFFSET;
             end
             % obj.imgIoF = img_iof;
         end
