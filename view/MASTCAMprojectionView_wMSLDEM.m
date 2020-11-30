@@ -30,7 +30,7 @@ classdef MASTCAMprojectionView_wMSLDEM < handle
                     end
                 end
             end
-            %   
+            %
             obj.MSTproj = MSTproj;
             obj.MSTview = MASTCAMview(MSTproj.MASTCAMdata);
             obj.MSTview_ISVImage_range = ...
