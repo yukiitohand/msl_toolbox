@@ -24,8 +24,8 @@ classdef MASTCAMgroup_eye < dynamicprops
         CAM_MDL     % CAMERA MODEL
         ROVER_NAV   % ROVER NAVIGATION FRAME
         CAM_MDL_GEO % CAMERA MODEL in a geographic coordinate system
-        L_im
-        S_im
+        % L_im
+        % S_im
         DRXX
         DRCX
         DRLX
@@ -57,8 +57,8 @@ classdef MASTCAMgroup_eye < dynamicprops
                 obj.ROVER_NAV = mst_obj.ROVER_NAV;
                 obj.CAM_MDL  = mst_obj.CAM_MDL;
                 obj.PRODUCT_ID = {mst_obj.PRODUCT_ID};
-                obj.L_im = mst_obj.hdr.lines;
-                obj.S_im = mst_obj.hdr.samples;
+                % obj.L_im = mst_obj.hdr.lines;
+                % obj.S_im = mst_obj.hdr.samples;
                 switch upper(mst_obj.prop.cam_code)
                     case 'ML'
                         obj.eye = 'L';

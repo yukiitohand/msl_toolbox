@@ -4,8 +4,8 @@ function [basename_cache_com] = mastcam_create_basename_cache(mastcamdata_obj,va
 %  the form that includes side_id, drive_id, pose_id, remote sensing mast
 %  motion counter.
 %  INPUTS
-%   mastcamdata_obj: MASTCAMdata obj or MASTCAMgroup_eye that shares same
-%   Rover Navigation model
+%   mastcamdata_obj: MASTCAMdata or MASTCAMgroup_wProcCodes that shares same
+%   Rover Navigation model, Camera model, and Linearization.
 %  OUTPUTS
 %   basename_cache_com: basename of the cache files, common part.
 %  OPTIONAL PARAMETERS
@@ -54,7 +54,10 @@ site_id  = mastcamdata_obj.RMC.SITE;
 drive_id = mastcamdata_obj.RMC.DRIVE;
 pose_id  = mastcamdata_obj.RMC.POSE;
 rsm_mc   = mastcamdata_obj.RMC.RSM;
-basename_cache_com = sprintf('%s%s%s_site%03ddrive%04dpose%03drsm%03d_%s',sol,cam_code,seq_id,...
-    site_id,drive_id,pose_id,rsm_mc,rover_nav_vr);
+
+lr = mastcamdata_obj.Linearization;
+
+basename_cache_com = sprintf('%s%s%s_site%03ddrive%04dpose%03drsm%03d_%s_LR%1d',sol,cam_code,seq_id,...
+    site_id,drive_id,pose_id,rsm_mc,rover_nav_vr,lr);
 
 end

@@ -70,14 +70,6 @@ end
 % Get the size of the mastcam image
 %-------------------------------------------------------------------------%
 L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
-% switch class(mastcamdata_obj)
-%     case 'MASTCAMdata'
-%         L_im = mastcamdata_obj.hdr.lines; S_im = mastcamdata_obj.samples;
-%     case 'MASTCAMgroup_eye'
-%         
-%     otherwise
-%         error('second input needs to be either MASTCAMdata or MASTCAMgroup_eye class.');
-% end
 
 %% First compute dem_imFOV_mask
 
