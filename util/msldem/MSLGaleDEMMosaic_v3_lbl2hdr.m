@@ -51,6 +51,8 @@ if isfield(lbl_info.OBJECT_IMAGE,'BAND_NAME')
     hdr_info.band_names = obj_file_image.OBJECT_IMAGE.BAND_NAME;
 end
 
+hdr_info.data_ignore_value = -32767;
+
 % next, loading mapping information
 map_info = [];
 map_info.projection = lbl_info.OBJECT_IMAGE_MAP_PROJECTION.MAP_PROJECTION_TYPE;
