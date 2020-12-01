@@ -434,6 +434,30 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             % end
         end
         
+        function [mask_mastcam,mask_msldemc_UFOVmask]...
+                = create_SelectMask_from_msldemc_mask(obj,msldemc_mask)
+            
+            % MASKs (forward and backward)
+            mask_msldemc_UFOVmask = msldemc_mask;
+            
+            mask_mastcam = false(obj.MASTCAMdata.L_im,obj.MASTCAMdata.S_im);
+            
+            [ufov_row,ufov_col] = find(msldemc_mask);
+            for i=1:length(ufov_row)
+                ufov_rowi = ufov_row(i); ufov_coli = ufov_col(i);
+                idxes = obj.mapper_msldemc2mastcam_cell{obj.mapper_msldemc2mastcam_mat(ufov_rowi,ufov_coli)};
+                for ii=1:size(idxes,2)
+                    mask_mastcam(idxes(2,ii),idxes(1,ii)) = true;
+                    % next is back projection
+                    idxes_j = obj.mapper_mastcam2msldemc{idxes(2,ii),idxes(1,ii)};
+                    for j=1:size(idxes_j,2)
+                        mask_msldemc_UFOVmask(idxes_j(2,j),idxes_j(1,j)) = true;
+                    end
+                end
+            end
+            
+        end
+        
 %         function [mask_mastcam] = create_mask_mastcam_wMSLDEMcoord(obj,x_dem,y_dem,x_mst,y_mst)
 %             % MASK for MASTCAM image using MSLDEM
 %             % select all the pixels of MASTCAM image whose nearest neighbor 
@@ -490,7 +514,26 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             toc;
         end
         
-        
+        %%
+        function [msldemc_img,msldemc_img_hdr] = MSLDEMread(obj)
+            mrgn = 100;
+            smpl_offset = max(1,obj.msldemc_imUFOVhdr.sample_offset-mrgn);
+            smpls = min(obj.MSLDEMdata.hdr.samples-smpl_offset,...
+                obj.msldemc_imUFOVhdr.samples+2*mrgn);
+            ln_offset = max(1,obj.msldemc_imUFOVhdr.line_offset-mrgn);
+            lns = min(obj.MSLDEMdata.hdr.lines-ln_offset,...
+                obj.msldemc_imUFOVhdr.lines+2*mrgn);
+            
+            tic; msldemc_img = msldem_lazyenvireadRect(obj.MSLDEMdata,...
+                smpl_offset,ln_offset,smpls,lns,'precision','single'); toc;
+            
+            msldemc_img_hdr = [];
+            msldemc_img_hdr.sample_offset = smpl_offset;
+            msldemc_img_hdr.line_offset   = ln_offset;
+            msldemc_img_hdr.samples = smpls;
+            msldemc_img_hdr.lines   = lns;
+            
+        end
     end
 end
 
