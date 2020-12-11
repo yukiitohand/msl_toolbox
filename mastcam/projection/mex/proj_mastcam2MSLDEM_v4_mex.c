@@ -14,11 +14,10 @@
  * 7 msldemc_imFOVmask     Boolean [L_demc x S_demc]
  * 8 S_im                  int
  * 9 L_im                  int
- * 10 cam_C                Double [3 x 1]
- * 11 cam_A                Double [3 x 1]
- * 12 PmCx                 Double [L_im*S_im]
- * 13 PmCy                 Double [L_im*S_im]
- * 14 PmCz                 Double [L_im*S_im]
+ * 10 cahv_mdl             CAHV_MODEL
+ * 11 PmCx                 Double [L_im*S_im]
+ * 12 PmCy                 Double [L_im*S_im]
+ * 13 PmCz                 Double [L_im*S_im]
  * 
  * 
  * OUTPUTS:
@@ -52,6 +51,7 @@
 #include <stdlib.h>
 #include "envi.h"
 #include "mex_create_array.h"
+#include "cahvor.h"
 
 double get_sqr_dst(double ux,double uy,double uz,double vx,double vy,double vz)
 {
@@ -74,7 +74,7 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
         double *msldemc_northing, double *msldemc_easting,
         double **msldemc_imx, double **msldemc_imy,
         int8_T **msldemc_imFOVmask, 
-        int32_T S_im, int32_T L_im, double *cam_C, double *cam_A,
+        int32_T S_im, int32_T L_im, CAHV_MODEL cahv_mdl,
         double **PmCx, double **PmCy, double **PmCz,
         double **im_north, double **im_east, double **im_elev,
         int32_T **im_refx, int32_T **im_refy, int32_T **im_refs,
@@ -121,6 +121,10 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
     double pc; /* Plane Constant */
     double lprm; /* line parameters */
     
+    double *cam_C;
+    double *cam_A;
+    
+    cam_C = cahv_mdl.C; cam_A = cahv_mdl.A;
     
     
     
@@ -489,8 +493,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double **msldemc_imy;
     int8_T **msldemc_imFOVmask;
     mwSize S_im,L_im;
-    double *cam_C;
-    double *cam_A;
+    CAHV_MODEL cahv_mdl;
     double **PmCx, **PmCy, **PmCz;
     
     double **im_north;
@@ -548,7 +551,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     msldemc_easting = mxGetDoubles(prhs[4]);
     
     /* INPUT 5/6 msldem imxy */
-    msldemc_imx = set_mxDoubleMatrix(prhs[5]);    
+    msldemc_imx = set_mxDoubleMatrix(prhs[5]); 
     msldemc_imy = set_mxDoubleMatrix(prhs[6]);
     
     /* INPUT 7 msldem imFOV */
@@ -562,13 +565,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     L_im = (mwSize) mxGetScalar(prhs[9]);
     
     /* INPUT 10/11 camera model */
-    cam_C = mxGetDoubles(prhs[10]);
-    cam_A = mxGetDoubles(prhs[11]);
+    cahv_mdl = mxGet_CAHV_MODEL(prhs[10]);
     
     /* INPUT 12/13/14 PmC */
-    PmCx = set_mxDoubleMatrix(prhs[12]);
-    PmCy = set_mxDoubleMatrix(prhs[13]);
-    PmCz = set_mxDoubleMatrix(prhs[14]);
+    PmCx = set_mxDoubleMatrix(prhs[11]);
+    PmCy = set_mxDoubleMatrix(prhs[12]);
+    PmCz = set_mxDoubleMatrix(prhs[13]);
     
     /* OUTPUT 0/1/2 north-east-elevation */
     plhs[0] = mxCreateDoubleMatrix(L_im,S_im,mxREAL);
@@ -645,7 +647,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
        (int32_T) msldemc_samples, (int32_T) msldemc_lines,
        msldemc_northing, msldemc_easting,
        msldemc_imx, msldemc_imy,
-       msldemc_imFOVmask, (int32_T) S_im, (int32_T) L_im, cam_C, cam_A,
+       msldemc_imFOVmask, (int32_T) S_im, (int32_T) L_im, cahv_mdl,
        PmCx,PmCy,PmCz, im_north, im_east, im_elev,
        im_refx, im_refy, im_refs,
        im_range, im_nnx, im_nny,
