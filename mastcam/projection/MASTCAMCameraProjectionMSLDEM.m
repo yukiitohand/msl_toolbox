@@ -99,6 +99,10 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
                 obj.version = vr;
             end
             
+            if isempty(mstdata_obj.PRODUCT_ID)
+                error('No data is found');
+            end
+            
             obj.MASTCAMdata = mstdata_obj;
             obj.MSLDEMdata  = MSLDEMdata_obj;
             
@@ -260,73 +264,6 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             
         end
         
-        
-        
-        % function proj_MSLDEM2mastcam_old(obj)
-        %     [MSLDEMprj] = proj_MSLDEM2mastcam_v2(obj.MSLDEMdata,obj.MASTCAMdata);
-        %     l1 = MSLDEMprj.hdr_imxy.line_offset+1;
-        %     lend = MSLDEMprj.hdr_imxy.line_offset+MSLDEMprj.hdr_imxy.lines;
-        %     s1 = MSLDEMprj.hdr_imxy.sample_offset+1;
-        %     send = MSLDEMprj.hdr_imxy.sample_offset+MSLDEMprj.hdr_imxy.samples;
-        %     dem_imFOV_mask_crop = MSLDEMprj.imFOV_mask(l1:lend,s1:send);
-        %     obj.msldemc_imFOVxy = MSLDEMprj.imxy;
-        %     obj.msldemc_imFOVmask = dem_imFOV_mask_crop;
-        %     obj.msldemc_imFOVhdr = MSLDEMprj.hdr_imxy;
-        % end
-        %         function crop_msldemc_imUFOVmask(obj)
-%             valid_lines   = find(any(obj.msldemc_imUFOVmask',1));
-%             lrnge         = [valid_lines(1), valid_lines(end)];
-%             len_vl        = lrnge(2)-lrnge(1)+1;
-%             valid_samples = find(any(obj.msldemc_imUFOVmask,1));
-%             srnge         = [valid_samples(1), valid_samples(end)];
-%             len_vs        = srnge(2)-srnge(1)+1;
-% 
-%             l1   = obj.msldemc_imFOVhdr.line_offset+lrnge(1);
-%             lend = obj.msldemc_imFOVhdr.line_offset+lrnge(2);
-%             s1   = obj.msldemc_imFOVhdr.sample_offset+srnge(1);
-%             send = obj.msldemc_imFOVhdr.sample_offset+srnge(2);
-%             msldemc_northing = obj.MSLDEMdata.hdr.y(l1:lend);
-%             msldemc_easting  = obj.MSLDEMdata.hdr.x(s1:send);
-% 
-%             obj.msldemc_imUFOVmask = obj.msldemc_imUFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
-% 
-%             obj.msldemc_imUFOVhdr = [];
-%             obj.msldemc_imUFOVhdr.lines   = len_vl;
-%             obj.msldemc_imUFOVhdr.samples = len_vs;
-%             obj.msldemc_imUFOVhdr.line_offset   = l1-1;
-%             obj.msldemc_imUFOVhdr.sample_offset = s1-1;
-%             obj.msldemc_imUFOVhdr.y = msldemc_northing;
-%             obj.msldemc_imUFOVhdr.x = msldemc_easting;
-% 
-%             obj.msldemc_imUFOVxy = obj.msldemc_imFOVxy(lrnge(1):lrnge(2),srnge(1):srnge(2),:);
-%             mm = (obj.msldemc_imUFOVmask==0);
-%             for i=1:2
-%                 msldemc_imUFOVtmp = obj.msldemc_imUFOVxy(:,:,i);
-%                 msldemc_imUFOVtmp(mm) = nan;
-%                 obj.msldemc_imUFOVxy(:,:,i) = msldemc_imUFOVtmp;
-%             end
-%             
-%             obj.msldemc_imUFOVxynn = round(obj.msldemc_imUFOVxy+1);
-%             
-%             L_im = obj.MASTCAMdata.L_im; S_im = obj.MASTCAMdata.S_im;
-%             
-%             msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,1);
-%             msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
-%             msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
-%             msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.S_im) = S_im;
-%             obj.msldemc_imUFOVxynn(:,:,1) = msldemc_imUFOVtmp;
-%             msldemc_imUFOVtmp = obj.msldemc_imUFOVxynn(:,:,2);
-%             msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
-%             msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
-%             msldemc_imUFOVtmp(msldemc_imUFOVtmp>obj.MASTCAMdata.L_im) = L_im;
-%             obj.msldemc_imUFOVxynn(:,:,2) = msldemc_imUFOVtmp;
-%             obj.msldemc_imUFOVxynn = int16(obj.msldemc_imUFOVxynn);
-%             
-%             obj.mastcam_msldemc_nn_UFOVmask = obj.mastcam_msldemc_nn;
-%             obj.mastcam_msldemc_nn_UFOVmask(:,:,1) = obj.mastcam_msldemc_nn_UFOVmask(:,:,1)-int32(srnge(1)-1);
-%             obj.mastcam_msldemc_nn_UFOVmask(:,:,2) = obj.mastcam_msldemc_nn_UFOVmask(:,:,2)-int32(lrnge(1)-1);
-%             
-%         end
         %% Interfaces for resolving pixel matching
         function [x_east,y_north] = get_NE_from_msldemc_imUFOVxy(obj,x_dem,y_dem)
             x_east = obj.msldemc_imUFOVhdr.x(x_dem);
