@@ -31,14 +31,14 @@
 
 #include <stdlib.h>
 #include "envi.h"
+#include "cahvor.h"
 #include "mex_create_array.h"
 
 /* main computation routine */
 void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         double *msldem_northing, double *msldem_easting, 
         int32_T S_im, int32_T L_im, 
-        double *cam_C, double *cam_A, double *cam_H, double *cam_V,
-        double *cam_Hd, double *cam_Vd, double hc, double hs, double vc, double vs,
+        CAHV_MODEL cahv_mdl,
         int8_T **msldem_imFOVmaskd, double coef_mrgn)
 {
     int32_T c,l;
@@ -67,6 +67,12 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     double S_imm05,L_imm05;
     float data_ignore_value_float;
     double Hd2_abs,Vd2_abs;
+    double *cam_C, *cam_A, *cam_H, *cam_V, *cam_Hd, *cam_Vd;
+    double cam_hc,cam_vc,cam_hs,cam_vs;
+    
+    cam_C = cahv_mdl.C; cam_A = cahv_mdl.A; cam_H = cahv_mdl.H; cam_V = cahv_mdl.V;
+    hs = cahv_mdl.hs; vs = cahv_mdl.vs; hc = cahv_mdl.hc; vc = cahv_mdl.vc;
+    cam_Hd = cahv_mdl.Hdash; cam_Vd = cahv_mdl.Vdash;
     
     S_dem = (int32_T) msldem_hdr.samples;
     L_dem = (int32_T) msldem_hdr.lines;
@@ -238,7 +244,7 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                 
                 if (x_im>-0.5-mrgnh && x_im<S_imm05+mrgnh && 
                         y_im>-0.5-mrgnv && y_im<L_imm05+mrgnv){
-                    msldem_imFOVmaskd[c][l] = 2;
+                    msldem_imFOVmaskd[c][l] = 4;
                     // msldem_imFOVmask[c][l]  = true;
                 }                
             } else {
@@ -269,23 +275,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
 {
     char *msldem_imgpath;
     EnviHeader msldem_hdr;
+    CAHV_MODEL cahv_mdl;
     double *msldem_northing;
     double *msldem_easting;
     // bool **msldem_imFOVmask;
     int8_T **msldem_imFOVmaskd;
     mwSize S_im,L_im;
-    mxArray *cam_C_mxar, *cam_C_mxard;
-    mxArray *cam_A_mxar, *cam_A_mxard;
-    mxArray *cam_H_mxar, *cam_H_mxard;
-    mxArray *cam_V_mxar, *cam_V_mxard;
-    mxArray *cam_Hd_mxar, *cam_Hd_mxard;
-    mxArray *cam_Vd_mxar, *cam_Vd_mxard;
-    mxArray *cam_hc_mxar, *cam_hc_mxard;
-    mxArray *cam_vc_mxar, *cam_vc_mxard;
-    mxArray *cam_hs_mxar, *cam_hs_mxard;
-    mxArray *cam_vs_mxar, *cam_vs_mxard;
-    double *cam_C, *cam_A, *cam_H, *cam_V, *cam_Hd, *cam_Vd;
-    double cam_hc,cam_vc,cam_hs,cam_vs;
     
     double coef_mrgn;
     
@@ -328,50 +323,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //printf("sim = %d\n",S_im);
     
     /* INPUT 6 camera model */
-    cam_C_mxar = mxGetProperty(prhs[6],0,"C");
-    cam_C_mxard = mxDuplicateArray(cam_C_mxar);
-    cam_C = mxGetDoubles(cam_C_mxard);
-    
-    cam_A_mxar = mxGetProperty(prhs[6],0,"A");
-    cam_A_mxard = mxDuplicateArray(cam_A_mxar);
-    cam_A = mxGetDoubles(cam_A_mxard);
-    
-    cam_H_mxar = mxGetProperty(prhs[6],0,"H");
-    cam_H_mxard = mxDuplicateArray(cam_H_mxar);
-    cam_H = mxGetDoubles(cam_H_mxard);
-    
-    cam_V_mxar = mxGetProperty(prhs[6],0,"V");
-    cam_V_mxard = mxDuplicateArray(cam_V_mxar);
-    cam_V = mxGetDoubles(cam_V_mxard);
-    
-    cam_Hd_mxar = mxGetProperty(prhs[6],0,"Hdash");
-    cam_Hd_mxard = mxDuplicateArray(cam_Hd_mxar);
-    cam_Hd = mxGetDoubles(cam_Hd_mxard);
-    
-    cam_Vd_mxar = mxGetProperty(prhs[6],0,"Vdash");
-    cam_Vd_mxard = mxDuplicateArray(cam_Vd_mxar);
-    cam_Vd = mxGetDoubles(cam_Vd_mxard);
-    
-    cam_hc_mxar = mxGetProperty(prhs[6],0,"hc");
-    cam_hc_mxard = mxDuplicateArray(cam_hc_mxar);
-    cam_hc = mxGetScalar(cam_hc_mxard);
-    
-    cam_vc_mxar = mxGetProperty(prhs[6],0,"vc");
-    cam_vc_mxard = mxDuplicateArray(cam_vc_mxar);
-    cam_vc = mxGetScalar(cam_vc_mxard);
-    
-    cam_hs_mxar = mxGetProperty(prhs[6],0,"hs");
-    cam_hs_mxard = mxDuplicateArray(cam_hs_mxar);
-    cam_hs = mxGetScalar(cam_hs_mxard);
-    
-    cam_vs_mxar = mxGetProperty(prhs[6],0,"vs");
-    cam_vs_mxard = mxDuplicateArray(cam_vs_mxar);
-    cam_vs = mxGetScalar(cam_vs_mxard);
+    cahv_mdl = mxGet_CAHV_MODEL(prhs[6]);
     
     // printf("cam_Hd %f %f %f\n",cam_Hd[0],cam_Hd[1],cam_Hd[2]);
     coef_mrgn = mxGetScalar(prhs[7]);
-    
-    
     
     /* OUTPUT 0 msldem imFOV */
     // plhs[0] = mxCreateLogicalMatrix((mwSize) msldem_hdr.lines,(mwSize) msldem_hdr.samples);
@@ -397,8 +352,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     get_imFOVmask_MSLDEM(msldem_imgpath, msldem_hdr,
         msldem_northing, msldem_easting, 
         (int32_T) S_im, (int32_T) L_im, 
-        cam_C, cam_A, cam_H, cam_V, cam_Hd, cam_Vd,
-        cam_hc, cam_hs, cam_vc, cam_vs,
+        cahv_mdl,
         msldem_imFOVmaskd,coef_mrgn);
     
     /* free memories */
