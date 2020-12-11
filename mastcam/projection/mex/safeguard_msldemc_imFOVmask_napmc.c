@@ -1,7 +1,7 @@
 /* =====================================================================
- * get_imxy_MSLDEM_mex.c
- * Read MSLDEM image data
- * Perform projection of mastcam pixels onto MSLDEM data
+ * safeguard_msldemc_imFOVmask_napmc.c
+ * Detect potential pixels within FOV the pmc of which havs negative dot 
+ * products with the camera axis vector.
  * 
  * INPUTS:
  * 0 msldem_imgpath        char*
@@ -9,12 +9,12 @@
  * 2 msldemc_header        struct
  * 3 msldemc_northing      Double array [L_demc]
  * 4 msldemc_easting       Double array [S_demc]
- * 5 msldem_imFOVmaskd    int8 [L_demc x S_demc]
- * 8 cammdl               CAHVOR model class
+ * 5 msldem_imFOVmaskd     int8 [L_demc x S_demc]
+ * 8 cmmdl                 CAHV model class
  * 
  * 
  * OUTPUTS:
- * 0 msldem_safeguard      int8 [L_demc * S_demc]
+ * 0 msldemc_safeguard     int8 [L_demc * S_demc]
  * 
  *
  *
@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include "envi.h"
 #include "mex_create_array.h"
+#include "cahvor.h"
 
 /* main computation routine */
 void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr, 
@@ -39,7 +40,7 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
         double *msldemc_northing, double *msldemc_easting,
         int8_T **msldemc_imFOVmaskd, 
         int32_T S_im, int32_T L_im,
-        double *cam_C, double *cam_A,
+        CAHV_MODEL cahv_mdl,
         int8_T **msldemc_safeguard_mask)
 {
     int32_T c,l;
@@ -55,6 +56,8 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
     double apmcx,apmcy,apmcz;
     double *APmCys;
     double apmc;
+    double *cam_C, double *cam_A;
+    cam_C = cahv_mdl.C; cam_A = cahv_mdl.A;
     
     msldemc_samplesm1 = msldemc_samples-1;
     msldemc_linesm1 = msldemc_lines - 1;
@@ -96,39 +99,39 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
                 if(l==0){
                     printf("a\n");
                     if(c==0){
-                        if(msldemc_imFOVmaskd[c+1][l] || msldemc_imFOVmaskd[c][l+1] || msldemc_imFOVmaskd[c+1][l+1])
+                        if(msldemc_imFOVmaskd[c+1][l]>2 || msldemc_imFOVmaskd[c][l+1]>2 || msldemc_imFOVmaskd[c+1][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else if(c==msldemc_samplesm1){
-                        if(msldemc_imFOVmaskd[c-1][l] || msldemc_imFOVmaskd[c-1][l+1] || msldemc_imFOVmaskd[c][l+1])
+                        if(msldemc_imFOVmaskd[c-1][l]>2 || msldemc_imFOVmaskd[c-1][l+1]>2 || msldemc_imFOVmaskd[c][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else{
-                        if(msldemc_imFOVmaskd[c-1][l] || msldemc_imFOVmaskd[c+1][l] 
-                                || msldemc_imFOVmaskd[c-1][l+1] || msldemc_imFOVmaskd[c][l+1] || msldemc_imFOVmaskd[c+1][l+1])
+                        if(msldemc_imFOVmaskd[c-1][l]>2 || msldemc_imFOVmaskd[c+1][l]>2
+                                || msldemc_imFOVmaskd[c-1][l+1]>2 || msldemc_imFOVmaskd[c][l+1]>2 || msldemc_imFOVmaskd[c+1][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     }
                 } else if(l==msldemc_linesm1){
                     if(c==0){
-                        if(msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c+1][l-1] || msldemc_imFOVmaskd[c+1][l])
+                        if(msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c+1][l-1]>2 || msldemc_imFOVmaskd[c+1][l]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else if(c==msldemc_samplesm1){
-                        if(msldemc_imFOVmaskd[c-1][l-1] || msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c-1][l])
+                        if(msldemc_imFOVmaskd[c-1][l-1]>2 || msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c-1][l]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else{
-                        if(msldemc_imFOVmaskd[c-1][l-1] || msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c+1][l-1] 
-                                || msldemc_imFOVmaskd[c-1][l] || msldemc_imFOVmaskd[c+1][l])
+                        if(msldemc_imFOVmaskd[c-1][l-1]>2 || msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c+1][l-1]>2
+                                || msldemc_imFOVmaskd[c-1][l]>2 || msldemc_imFOVmaskd[c+1][l]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     }
                 } else {
                     if(c==0){
-                        if(msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c+1][l-1] || msldemc_imFOVmaskd[c+1][l] || msldemc_imFOVmaskd[c][l+1] || msldemc_imFOVmaskd[c+1][l+1])
+                        if(msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c+1][l-1]>2 || msldemc_imFOVmaskd[c+1][l]>2 || msldemc_imFOVmaskd[c][l+1]>2 || msldemc_imFOVmaskd[c+1][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else if(c==msldemc_samplesm1){
-                        if(msldemc_imFOVmaskd[c-1][l-1] || msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c-1][l] || msldemc_imFOVmaskd[c-1][l+1] || msldemc_imFOVmaskd[c][l+1])
+                        if(msldemc_imFOVmaskd[c-1][l-1]>2 || msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c-1][l]>2 || msldemc_imFOVmaskd[c-1][l+1]>2 || msldemc_imFOVmaskd[c][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     } else{
-                        if(msldemc_imFOVmaskd[c-1][l-1] || msldemc_imFOVmaskd[c][l-1] || msldemc_imFOVmaskd[c+1][l-1] 
-                                || msldemc_imFOVmaskd[c-1][l] || msldemc_imFOVmaskd[c+1][l]
-                                || msldemc_imFOVmaskd[c-1][l+1] || msldemc_imFOVmaskd[c][l+1] || msldemc_imFOVmaskd[c+1][l+1])
+                        if(msldemc_imFOVmaskd[c-1][l-1]>2 || msldemc_imFOVmaskd[c][l-1]>2 || msldemc_imFOVmaskd[c+1][l-1]>2 
+                                || msldemc_imFOVmaskd[c-1][l]>2 || msldemc_imFOVmaskd[c+1][l]>2
+                                || msldemc_imFOVmaskd[c-1][l+1]>2 || msldemc_imFOVmaskd[c][l+1]>2 || msldemc_imFOVmaskd[c+1][l+1]>2)
                             msldemc_safeguard_mask[c][l] = 1;
                     }
                 }
@@ -153,9 +156,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int8_T **msldemc_imFOVmaskd;
     
     mwSize S_im,L_im;
-    mxArray *cam_C_mxar, *cam_C_mxard;
-    mxArray *cam_A_mxar, *cam_A_mxard;
-    double *cam_C, *cam_A;
+    CAHV_MODEL cahv_mdl;
     
     int8_T **msldemc_safeguard_mask;
     
@@ -206,13 +207,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     
     /* INPUT 7 camera model */
-    cam_C_mxar = mxGetProperty(prhs[8],0,"C");
-    cam_C_mxard = mxDuplicateArray(cam_C_mxar);
-    cam_C = mxGetDoubles(cam_C_mxard);
-    
-    cam_A_mxar = mxGetProperty(prhs[8],0,"A");
-    cam_A_mxard = mxDuplicateArray(cam_A_mxar);
-    cam_A = mxGetDoubles(cam_A_mxard);
+    cahv_mdl = mxGet_CAHV_MODEL(prhs[6]);
     
     
     /* OUTPUT 0/1 msldem imxy */
@@ -235,7 +230,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         msldemc_northing, msldemc_easting,
         msldemc_imFOVmaskd, 
         (int32_T) S_im, (int32_T) L_im,
-        cam_C, cam_A,
+        cahv_mdl,
         msldemc_safeguard_mask);
     
     /* free memories */
