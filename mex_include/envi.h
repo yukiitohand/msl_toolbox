@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include "mex.h"
 
+#ifndef ENVI_H
+#define ENVI_H
 
 typedef enum EnviHeaderInterleave {
     BSQ,BIP,BIL
@@ -61,3 +63,5 @@ EnviHeader mxGetEnviHeader(const mxArray *pm){
     return msldem_hdr;
     
 }
+
+#endif

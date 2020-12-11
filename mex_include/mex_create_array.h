@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include "mex.h"
 
+#ifndef MEX_CREATE_ARRAY_H
+#define MEX_CREATE_ARRAY_H
+
 double** set_mxDoubleMatrix(const mxArray *pmi){
     mwSize M,N;
     mwIndex j;
@@ -81,3 +84,68 @@ int32_T** set_mxInt32Matrix(const mxArray *pmi){
     }
     return pm;
 }
+
+/* create a column oriented MxN matrix accessed by ar2d[n][m] */
+void createDoubleMatrix(double ***ar2d, double **ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (double**) malloc(sizeof(double*) * N);
+    *ar_base = (double*) malloc(sizeof(double) * N * M);
+    (*ar2d)[0] = *ar_base;
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
+void createSingleMatrix(float ***ar2d, float **ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (float**) malloc(sizeof(float*) * N);
+    *ar_base = (float*) malloc(sizeof(float) * N * M);
+    (*ar2d)[0] = *ar_base;
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
+/* create a column oriented MxN matrix accessed by ar2d[n][m] */
+void createInt32Matrix(int32_T ***ar2d, int32_T **ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (int32_T**) malloc(sizeof(int32_T*) * N);
+    *ar_base = (int32_T*) malloc(sizeof(int32_T) * N * M);
+    (*ar2d)[0] = &(*ar_base)[0];
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
+/* Int32 Pointer matrix */
+void createInt32PMatrix(int32_T ****ar2d, int32_T ***ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (int32_T***) malloc(sizeof(int32_T**) * N);
+    *ar_base = (int32_T**) malloc(sizeof(int32_T*) * N * M);
+    (*ar2d)[0] = &(*ar_base)[0];
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
+void createDoublePMatrix(double ****ar2d, double ***ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (double***) malloc(sizeof(double**) * N);
+    *ar_base = (double**) malloc(sizeof(double*) * N * M);
+    (*ar2d)[0] = &(*ar_base)[0];
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
+#endif
