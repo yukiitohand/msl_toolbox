@@ -74,9 +74,20 @@ else
     end
 end
 
-% does not save imxy since it can be too big, loading takes much longer.
-[msldemc_imFOVxy] = mastcam_get_projMSLDEM2mastcam_v3_imxy(...
-    MSLDEMdata,msldemc_imFOVmask,msldemc_imFOVhdr,L_im,S_im,cmmdl_geo);
+% imxy is no longer calculated here because it makes the later processing
+% slower.
+msldemc_imFOVxy = [];
+
+% % does not save imxy since it can be too big, loading takes much longer.
+% switch mstdata_obj.Linearization
+%     case 1
+%         [msldemc_imFOVxy] = mastcam_get_projMSLDEM2mastcam_v3_imxy(...
+%             MSLDEMdata,msldemc_imFOVmask,msldemc_imFOVhdr,L_im,S_im,cmmdl_geo);
+%     case 0
+%         msldemc_imFOVxy = [];
+%     otherwise
+%         error('Not defined for Linearization=%d',mstdata_obj.Linearization);
+% end
 
 end
 
