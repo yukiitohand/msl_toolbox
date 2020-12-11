@@ -56,7 +56,7 @@ void safeguard_imFOVmask(char *msldem_imgpath, EnviHeader msldem_hdr,
     double apmcx,apmcy,apmcz;
     double *APmCys;
     double apmc;
-    double *cam_C, double *cam_A;
+    double *cam_C, *cam_A;
     cam_C = cahv_mdl.C; cam_A = cahv_mdl.A;
     
     msldemc_samplesm1 = msldemc_samples-1;
