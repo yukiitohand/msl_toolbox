@@ -68,7 +68,7 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     float data_ignore_value_float;
     double Hd2_abs,Vd2_abs;
     double *cam_C, *cam_A, *cam_H, *cam_V, *cam_Hd, *cam_Vd;
-    double cam_hc,cam_vc,cam_hs,cam_vs;
+    double hc,vc,hs,vs;
     
     cam_C = cahv_mdl.C; cam_A = cahv_mdl.A; cam_H = cahv_mdl.H; cam_V = cahv_mdl.V;
     hs = cahv_mdl.hs; vs = cahv_mdl.vs; hc = cahv_mdl.hc; vc = cahv_mdl.vc;

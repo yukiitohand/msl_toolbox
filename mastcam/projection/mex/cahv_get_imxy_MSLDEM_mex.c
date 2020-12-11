@@ -1,5 +1,5 @@
 /* =====================================================================
- * get_imxy_MSLDEM_mex.c
+ * cahv_get_imxy_MSLDEM_mex.c
  * Read MSLDEM image data
  * Perform projection of mastcam pixels onto MSLDEM data
  * 
@@ -33,6 +33,7 @@
 
 #include <stdlib.h>
 #include "envi.h"
+#include "cahvor.h"
 #include "mex_create_array.h"
 
 /* main computation routine */
@@ -42,7 +43,7 @@ void get_imxy_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         double *msldemc_northing, double *msldemc_easting,
         int8_T **msldemc_imFOVmaskd, 
         int32_T S_im, int32_T L_im,
-        double *cam_C, double *cam_A, double *cam_H, double *cam_V,
+        CAHV_MODEL cahv_mdl,
         double **msldemc_imx, double **msldemc_imy)
 {
     int32_T c,l;
@@ -60,6 +61,9 @@ void get_imxy_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     double vpmcx,vpmcy,vpmcz;
     double *APmCys,*HPmCys,*VPmCys;
     double apmc,hpmc,vpmc;
+    double *cam_C, *cam_A, *cam_H, *cam_V;
+    
+    cam_C = cahv_mdl.C; cam_A = cahv_mdl.A; cam_H = cahv_mdl.H; cam_V = cahv_mdl.V;
     
     
     
@@ -98,7 +102,7 @@ void get_imxy_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         hpmcx = cam_H[0] * pmcx;
         vpmcx = cam_V[0] * pmcx;
         for(c=0;c<msldemc_samples;c++){
-            if(msldemc_imFOVmaskd[c][l]==2){
+            if(msldemc_imFOVmaskd[c][l]>1){
                 dem_cl = (double) elevl[c];
                 pmcz  = -dem_cl-cam_C[2];
                 apmcz = cam_A[2] * pmcz;
@@ -133,6 +137,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 {
     char *msldem_imgpath;
     EnviHeader msldem_hdr;
+    CAHV_MODEL cahv_mdl;
     mwSize msldemc_imxy_sample_offset,msldemc_imxy_line_offset;
     double *msldemc_northing;
     double *msldemc_easting;
@@ -197,45 +202,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     L_im = (mwSize) mxGetScalar(prhs[7]);
     
     /* INPUT 7 camera model */
-    cam_C_mxar = mxGetProperty(prhs[8],0,"C");
-    cam_C_mxard = mxDuplicateArray(cam_C_mxar);
-    cam_C = mxGetDoubles(cam_C_mxard);
-    
-    cam_A_mxar = mxGetProperty(prhs[8],0,"A");
-    cam_A_mxard = mxDuplicateArray(cam_A_mxar);
-    cam_A = mxGetDoubles(cam_A_mxard);
-    
-    cam_H_mxar = mxGetProperty(prhs[8],0,"H");
-    cam_H_mxard = mxDuplicateArray(cam_H_mxar);
-    cam_H = mxGetDoubles(cam_H_mxard);
-    
-    cam_V_mxar = mxGetProperty(prhs[8],0,"V");
-    cam_V_mxard = mxDuplicateArray(cam_V_mxar);
-    cam_V = mxGetDoubles(cam_V_mxard);
-    
-//     cam_Hd_mxar = mxGetProperty(prhs[8],0,"Hdash");
-//     cam_Hd_mxard = mxDuplicateArray(cam_Hd_mxar);
-//     cam_Hd = mxGetDoubles(cam_Hd_mxard);
-//     
-//     cam_Vd_mxar = mxGetProperty(prhs[8],0,"Vdash");
-//     cam_Vd_mxard = mxDuplicateArray(cam_Vd_mxar);
-//     cam_Vd = mxGetDoubles(cam_Vd_mxard);
-//     
-//     cam_hc_mxar = mxGetProperty(prhs[8],0,"hc");
-//     cam_hc_mxard = mxDuplicateArray(cam_hc_mxar);
-//     cam_hc = mxGetScalar(cam_hc_mxard);
-//     
-//     cam_vc_mxar = mxGetProperty(prhs[8],0,"vc");
-//     cam_vc_mxard = mxDuplicateArray(cam_vc_mxar);
-//     cam_vc = mxGetScalar(cam_vc_mxard);
-//     
-//     cam_hs_mxar = mxGetProperty(prhs[8],0,"hs");
-//     cam_hs_mxard = mxDuplicateArray(cam_hs_mxar);
-//     cam_hs = mxGetScalar(cam_hs_mxard);
-//     
-//     cam_vs_mxar = mxGetProperty(prhs[8],0,"vs");
-//     cam_vs_mxard = mxDuplicateArray(cam_vs_mxar);
-//     cam_vs = mxGetScalar(cam_vs_mxard);
+    cahv_mdl = mxGet_CAHV_MODEL(prhs[8]);
+    //cahv_mdl = mxGet_CAHV_MODEL(prhs[6]);
+    // printf("%f,%f,%f\n",cahv_mdl.C[0],cahv_mdl.C[1],cahv_mdl.C[2]);
+    //printf("%f\n",cahv_mdl.Hdash[0]);
     
     /* OUTPUT 0/1 msldem imxy */
     plhs[0] = mxCreateDoubleMatrix(msldemc_lines,msldemc_samples,mxREAL);
@@ -262,7 +232,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         msldemc_northing, msldemc_easting,
         msldemc_imFOVmaskd, 
         (int32_T) S_im, (int32_T) L_im,
-        cam_C, cam_A, cam_H, cam_V,
+        cahv_mdl,
         msldemc_imx, msldemc_imy);
     
     /* free memories */
