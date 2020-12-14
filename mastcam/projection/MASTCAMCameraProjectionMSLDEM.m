@@ -167,6 +167,10 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
                 obj.MSLDEMdata,obj,varargin{:});
         end
         
+        function msldemc_imFOVmask_eval_13(obj,varargin)
+            [obj.msldemc_imFOVmask] = mastcam_msldemc_imFOVmask_eval_13(obj.msldemc_imFOVmask,obj.mastcam_msldemc_ref);
+        end
+        
         function getUFOVwMSLDEM(obj,varargin)
             % Optional input parameters can be 'BORDER_ASSESS_OPT',
             % 'CACHE_DIRPATH_CACHE','SAVE_FILE','Force'
