@@ -31,6 +31,7 @@ cmmdl = mastcamdata_obj.CAM_MDL;
 rover_nav_coord = mastcamdata_obj.ROVER_NAV;
 cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
 cmmdl_geo.get_image_plane_unit_vectors();
+proc_mode = 'ORIGINAL';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -38,6 +39,8 @@ else
         switch upper(varargin{i})
             case 'CAMERA_MODEL_GEO'
                 cmmdl_geo = varargin{i+1};
+            case 'PROC_MODE'
+                proc_mode = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
@@ -81,20 +84,58 @@ dem_easting_crop  = MSLDEMdata.hdr.x(s1:send);
 % dem_imFOVd_mask_crop = ~isnan(MSTprj.msldemc_imxy(:,:,1));
 
 %% Main computation.
-tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
-    im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
-proj_mastcam2MSLDEM_v4_mex(...
-    MSLDEMdata.imgpath,...0
-    MSLDEMdata.hdr,...1
-    MSTprj.msldemc_imFOVhdr,...2
-    dem_northing_crop,...3
-    dem_easting_crop,...4
-    MSTprj.msldemc_imFOVxy(:,:,1),...5
-    MSTprj.msldemc_imFOVxy(:,:,2),...6
-    MSTprj.msldemc_imFOVmask,...7
-    S_im,L_im,...8,9
-    C_geo,A_geo,...10,11
-    PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 12,13,14
+switch mastcamdata_obj.Linearization
+    case 1
+        tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
+            im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
+            cahv_proj_mastcam2MSLDEM_v5_mex(...
+                MSLDEMdata.imgpath,...0
+                MSLDEMdata.hdr,...1
+                MSTprj.msldemc_imFOVhdr,...2
+                dem_northing_crop,...3
+                dem_easting_crop,...4
+                MSTprj.msldemc_imFOVmask,...5
+                S_im,L_im,...6,7
+                cmmdl_geo,...8
+                PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
+        % comment out below is for an obsolete function. superseded by the
+        % function above because it is faster and memory efficient.
+        % tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
+        %         im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
+        %     proj_mastcam2MSLDEM_v4_mex(...
+        %         MSLDEMdata.imgpath,...0
+        %         MSLDEMdata.hdr,...1
+        %         MSTprj.msldemc_imFOVhdr,...2
+        %         dem_northing_crop,...3
+        %         dem_easting_crop,...4
+        %         MSTprj.msldemc_imFOVxy(:,:,1),...5
+        %         MSTprj.msldemc_imFOVxy(:,:,2),...6
+        %         MSTprj.msldemc_imFOVmask,...7
+        %         S_im,L_im,...8,9
+        %         cmmdl_geo,...10
+        %         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 11,12,13
+
+    case 0
+        
+        tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
+                    im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
+                cahvor_proj_mastcam2MSLDEM_v5_mex(...
+                    MSLDEMdata.imgpath,...0
+                    MSLDEMdata.hdr,...1
+                    MSTprj.msldemc_imFOVhdr,...2
+                    dem_northing_crop,...3
+                    dem_easting_crop,...4
+                    MSTprj.msldemc_imFOVmask,...5
+                    S_im,L_im,...6,7
+                    cmmdl_geo,...8
+                    PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
+        
+        
+    otherwise
+        error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+end
+
+
 
 
 %% Post computation task.

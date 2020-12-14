@@ -51,6 +51,7 @@ cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
 cmmdl_geo.get_image_plane_unit_vectors();
 
 coef_mrgn = 2.1;
+proc_mode = 'ENCLOSING_RECTANGLE'; %'SURROUNDING_COMPLEMENT';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
@@ -60,6 +61,8 @@ else
                 coef_mrgn = varargin{i+1};
             case 'CAMERA_MODEL_GEO'
                 cmmdl_geo = varargin{i+1};
+            case 'PROC_MODE'
+                proc_mode = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
@@ -72,11 +75,19 @@ end
 L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
 
 %% First compute dem_imFOV_mask
-
-
-tic; [msldem_imFOVmask] = get_imFOVmask_MSLDEM_v2_mex(...
-    MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...
-    S_im,L_im,cmmdl_geo,coef_mrgn); toc;
+switch mastcamdata_obj.Linearization
+    case 1
+        tic; [msldem_imFOVmask] = cahv_get_imFOVmask_MSLDEM_enclosing_rectangular_mex(...
+            MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...
+            S_im,L_im,cmmdl_geo,coef_mrgn); toc;
+    case 0
+        tic; [msldem_imFOVmask,lrange,srange]...
+            = mastcam_get_imFOVmask_msldem_cahvor_lr0(...
+            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode); toc;
+        
+    otherwise
+        error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+end
 
 % [dem_imFOV_mask,dem_imFOV_mask_xyd] = get_imFOV_mask_MSLDEM(cmmdl_geo,...
 %      [L_im,S_im],MSLDEMdata);
@@ -108,10 +119,14 @@ msldemc_imFOVmask = msldem_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
 clear dem_imFOV_mask;
 
-tic; [safeguard_mask] = safeguard_imFOVmask_MSLDEM(...
+tic; [safeguard_mask] = safeguard_msldemc_imFOVmask_napmc(...
     MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_sg,...
     msldemc_northing,msldemc_easting,...
     msldemc_imFOVmask,cmmdl_geo); toc;
+
+if any(safeguard_mask,'all')
+    fprintf('There seems to be a pixel that potentially in FOV and negatvie apmc');
+end
 
 msldemc_imFOVmask = msldemc_imFOVmask + safeguard_mask;
 
@@ -147,5 +162,14 @@ msldemc_imFOVhdr.x = msldemc_easting;
 msldemc_imFOVmask = msldemc_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
 %
-option = struct('COEF_MARGIN',coef_mrgn);
+switch mastcamdata_obj.Linearization
+    case 1
+        option = struct('COEF_MARGIN',coef_mrgn);
+    case 0
+        option = struct('COEF_MARGIN',coef_mrgn,'LRange',lrange,'SRange',srange,'PROC_MODE',proc_mode);
+    otherwise
+        error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+end
+
+
 end
