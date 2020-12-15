@@ -28,9 +28,12 @@ switch upper(proc_mode)
             srange,lrange,cmmdl_geo,coef_mrgn); toc;
 
     case 'SURROUNDING_COMPLEMENT'
-        tic; [msldem_imFOVmask] = cahvor_get_imFOVmask_MSLDEM_surrounding_complement_mex(...
+        tic;
+        [msldem_imFOVmask] = cahvor_get_imFOVmask_MSLDEM_surrounding_complement_fast_mex(...
             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...
-            S_im,L_im,srange,lrange,cmmdl_geo,coef_mrgn); toc;
+            S_im,L_im,srange,lrange,cmmdl_geo,coef_mrgn);
+        % msldem_imFOVmask(msldem_imFOVmask<0) = 0;
+        toc;
         
     otherwise
         error('Undefined imFOVmask_mode %s.',proc_mode);

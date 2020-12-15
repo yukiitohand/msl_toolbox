@@ -92,6 +92,9 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     float data_ignore_value_float;
     double Hd2_abs,Vd2_abs;
     
+    int32_T lList_exist[2];
+    int32_T *lList_crange;
+    
     cam_C = cahvor_mdl.C; cam_A = cahvor_mdl.A; cam_H = cahvor_mdl.H; cam_V = cahvor_mdl.V;
     cam_O = cahvor_mdl.O; cam_R = cahvor_mdl.R;
     hs = cahvor_mdl.hs; vs = cahvor_mdl.vs; hc = cahvor_mdl.hc; vc = cahvor_mdl.vc;
@@ -106,6 +109,13 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     L_imm05 = (double)L_im - 0.5;
     s_wdth = srange[1] - srange[0];
     l_wdth = lrange[1] - lrange[0];
+    
+    lList_exist[0] = -1; lList_exist[1] = -1;
+    lList_crange = (int32_T*) malloc(sizeof(int32_T)* (size_t) L_dem * 2);
+    for(l=0;l<L_dem;l++){
+        lList_crange[2*l] = -1;
+        lList_crange[2*l+1] = -1;
+    }
     
     // printf("%d \n",L_dem);
     
@@ -184,6 +194,8 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         apmcx = cam_A[0] * pmcx;
         hpmcx = cam_H[0] * pmcx;
         vpmcx = cam_V[0] * pmcx;
+        
+        c_min = -1; c_max = -1;
         for(c=0;c<S_dem;c++){
             dem_cl = (double) elevl[c+1];
             if(isnan(dem_cl)){
@@ -317,6 +329,9 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                                 /* if the pixel is within the range, there needs no more 
                                  * evaluation */
                                 msldem_imFOVmaskd[c][l] = 5;
+                                if(c_min==-1)
+                                    c_min = c;
+                                c_max = c;
                             }
                         }
                     }
@@ -325,41 +340,51 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                 }
             }
         }
+        c_max = c_max+1;
+        lList_crange[2*l] = c_min; lList_crange[2*l+1] = c_max;
+        if(c_min>-1){
+            if(lList_exist[0]==-1)
+                lList_exist[0] = l;
+            lList_exist[1] = l;
+        }
 
     }
     
-    
+    lList_exist[1] = lList_exist[1] + 1;
     /* Last step: complementation of the surroundings */
     /* This step is costly, since it is performed on the whole image 
      * can be speeded up in a more elaborated way. */
-    for(l=0;l<L_dem;l++){
-        l_min = (l-1>0) ? (l-1) : 0;
-        l_max = (l+2<L_dem) ? (l+2) : L_dem;
-        for(c=0;c<S_dem;c++){
-            if(msldem_imFOVmaskd[c][l]==0 || msldem_imFOVmaskd[c][l]==2 || msldem_imFOVmaskd[c][l]==3){
-                c_min = (c-1>0) ? (c-1) : 0;
-                c_max = (c+2<S_dem) ? (c+2) : S_dem;
-                for(cc=c_min;cc<c_max;cc++){
-                    for(ll=l_min;ll<l_max;ll++){
-                        if(msldem_imFOVmaskd[cc][ll]==5)
-                            msldem_imFOVmaskd[c][l] = 4;
+    if(lList_exist[0]>-1){
+        for(l=lList_exist[0];l<lList_exist[1];l++){
+            if(lList_crange[2*l]>-1){
+                l_min = (l-1>0) ? (l-1) : 0;
+                l_max = (l+2<L_dem) ? (l+2) : L_dem;
+                for(c=lList_crange[2*l];c<lList_crange[2*l+1];c++){
+                    if(msldem_imFOVmaskd[c][l]==5){
+                        c_min = (c-1>0) ? (c-1) : 0;
+                        c_max = (c+2<S_dem) ? (c+2) : S_dem;
+                        for(cc=c_min;cc<c_max;cc++){
+                            for(ll=l_min;ll<l_max;ll++){
+                                if(msldem_imFOVmaskd[cc][ll]==0 || msldem_imFOVmaskd[cc][ll]==2 || msldem_imFOVmaskd[cc][ll]==3) 
+                                    msldem_imFOVmaskd[cc][ll] = 4;
+                            }
+                        }
                     }
                 }
             }
-            
         }
     }
     
-    /* replace -1 with 0 */
-    /* This step is moderetely costly, since it is performed on the whole image 
-     * can be speeded up in a more elaborated way. */
-    for(l=0;l<L_dem;l++){
-        for(c=0;c<S_dem;c++){
-            if(msldem_imFOVmaskd[c][l]==-1){
-                msldem_imFOVmaskd[c][l] = 0;
-            }
-        }
-    }
+//     /* replace -1 with 0 */
+//     /* This step is moderetely costly, since it is performed on the whole image 
+//      * can be speeded up in a more elaborated way. */
+//     for(l=0;l<L_dem;l++){
+//         for(c=0;c<S_dem;c++){
+//             if(msldem_imFOVmaskd[c][l]==-1){
+//                 msldem_imFOVmaskd[c][l] = 0;
+//             }
+//         }
+//     }
     
     
     free(elevlm1);
@@ -369,6 +394,7 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     free(APmCys);
     free(HPmCys);
     free(VPmCys);
+    free(lList_crange);
     fclose(fid);
     
     /* safeguarding not implemented yet */
