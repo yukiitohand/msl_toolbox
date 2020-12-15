@@ -77,13 +77,12 @@ L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
 %% First compute dem_imFOV_mask
 switch mastcamdata_obj.Linearization
     case 1
-        tic; [msldem_imFOVmask] = cahv_get_imFOVmask_MSLDEM_enclosing_rectangular_mex(...
-            MSLDEMdata.imgpath,MSLDEMdata.hdr,MSLDEMdata.hdr.y,MSLDEMdata.hdr.x,...
-            S_im,L_im,cmmdl_geo,coef_mrgn); toc;
+        [msldem_imFOVmask] = mastcam_get_imFOVmask_msldem_cahvor_lr1(...
+            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
     case 0
-        tic; [msldem_imFOVmask,lrange,srange]...
+        [msldem_imFOVmask,lrange,srange]...
             = mastcam_get_imFOVmask_msldem_cahvor_lr0(...
-            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode); toc;
+            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
         
     otherwise
         error('Linearization %d is not supported',mastcamdata_obj.Linearization);
@@ -95,10 +94,11 @@ end
 %% safeguarding
 % the range of lines and samples are one pixel padded in all of the four
 % directions.
-valid_lines = find(any(msldem_imFOVmask',1));
+msldem_imFOVmask_gt0 = msldem_imFOVmask>0;
+valid_lines = find(any(msldem_imFOVmask_gt0',1));
 lrnge = [max(valid_lines(1)-1,1), min(valid_lines(end)+1,MSLDEMdata.hdr.lines)];
 len_vl = lrnge(2)-lrnge(1)+1;
-valid_samples = find(any(msldem_imFOVmask,1));
+valid_samples = find(any(msldem_imFOVmask_gt0,1));
 srnge = [max(valid_samples(1)-1,1), min(valid_samples(end)+1,MSLDEMdata.hdr.samples)];
 len_vs = srnge(2)-srnge(1)+1;
 
@@ -116,6 +116,7 @@ msldemc_northing = MSLDEMdata.hdr.y(lrnge(1):lrnge(2));
 msldemc_easting  = MSLDEMdata.hdr.x(srnge(1):srnge(2));
 
 msldemc_imFOVmask = msldem_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
+msldemc_imFOVmask(msldemc_imFOVmask<0) = 0;
 
 clear dem_imFOV_mask;
 
