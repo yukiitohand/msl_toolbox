@@ -163,6 +163,7 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
             apmcz = cam_A[2] * pmcz;
             apmcy = APmCys[c];
             apmc = apmcx + apmcy + apmcz;
+            //apmc = apmcx + APmCys[c] + cam_A[2] * pmcz;
             if(apmc>0){
                 hpmcy = HPmCys[c];
                 vpmcy = VPmCys[c];
@@ -172,6 +173,8 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                 vpmc = vpmcx + vpmcy + vpmcz;
                 x_im = hpmc / apmc;
                 y_im = vpmc / apmc;
+                //x_im = (hpmcx + HPmCys[c] + cam_H[2] * pmcz) / apmc;
+                //y_im = (vpmcx + VPmCys[c] + cam_V[2] * pmcz) / apmc;
                 
                 /* Evaluate resolution */
                 elev_amax = elevl[c+1];
@@ -224,20 +227,6 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                     resolz = (double) resol_amax;
                 else
                     resolz = (double) resol_amin;
-                
-                //if(c==6140 && l==53979){
-                //    
-                //    printf("dem_c-1l-1 = %f\n",elevlm1[c]);
-                //    printf("dem_cl-1 = %f\n",elevlm1[c+1]);
-                //    printf("dem_c+1l-1 = %f\n",elevlm1[c+2]);
-                //    printf("dem_c-1l = %f\n",elevl[c]);
-                //    printf("dem_cl = %f\n",elevl[c+1]);
-                //    printf("dem_c+1l = %f\n",elevl[c+2]);
-                //    printf("dem_c-1l+1 = %f\n",elevlp1[c]);
-                //    printf("dem_cl+1 = %f\n",elevlp1[c+1]);
-                //    printf("dem_c+1l+1 = %f\n",elevlp1[c+2]);
-                //    printf("resolz = %f\n",resolz);
-                //}
                  
                 mrgnh = coef_mrgn*hs/apmc * (resolhxy + Hd2_abs * resolz);
                 mrgnv = coef_mrgn*vs/apmc * (resolvxy + Vd2_abs * resolz);
@@ -245,7 +234,6 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                 if (x_im>-0.5-mrgnh && x_im<S_imm05+mrgnh && 
                         y_im>-0.5-mrgnv && y_im<L_imm05+mrgnv){
                     msldem_imFOVmaskd[c][l] = 4;
-                    // msldem_imFOVmask[c][l]  = true;
                 }                
             } else {
                 /* Evaluate */
