@@ -23,9 +23,17 @@ switch upper(lbl_info.OBJECT_IMAGE.SAMPLE_TYPE)
         hdr_info.byte_order = 1;
     case 'MSB_UNSIGNED_INTEGER'
         hdr_info.byte_order = 1;
-        switch obj_file_image.OBJECT_IMAGE.SAMPLE_BITS
+        switch lbl_info.OBJECT_IMAGE.SAMPLE_BITS
             case 16
                 hdr_info.data_type = 12;
+            case 8
+                hdr_info.data_type = 1;
+            otherwise
+                error('Undefined "OBJECT_IMAGE.SAMPLE_BITS"');
+        end
+    case 'LSB_UNSIGNED_INTEGER'
+        hdr_info.byte_order = 0;
+        switch lbl_info.OBJECT_IMAGE.SAMPLE_BITS
             case 8
                 hdr_info.data_type = 1;
             otherwise
@@ -34,6 +42,9 @@ switch upper(lbl_info.OBJECT_IMAGE.SAMPLE_TYPE)
     otherwise
         error('The data type: %s is not supported.',lbl_info.OBJECT_IMAGE.SAMPLE_TYPE);
 end
+
+% 
+hdr_info.byte_order = 0;
 
 hdr_info.header_offset = 0;
 % hdr_info.header_offset = img_obj.RECORD_BYTES;
