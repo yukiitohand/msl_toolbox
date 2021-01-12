@@ -154,7 +154,7 @@ void create_mapper_msldemc2mastcam(
         }
     }
     
-    
+    // printf("%d\n",S_im);
     for(si=0;si<S_im;si++){
         // printf("si=%d\n",si);
         for(li=0;li<L_im;li++){
@@ -162,6 +162,7 @@ void create_mapper_msldemc2mastcam(
             imx = mastcam_nnx[si][li];
             imy = mastcam_nny[si][li];
             if(imx>-1){
+                // printf("(%d,%d)(%d,%d) %d\n",si,li,imx,imy,mapper_countar[imx][imy]);
                 if((msldemc_imUFOVnnx[imx][imy] != si) || (msldemc_imUFOVnny[imx][imy] != li)){
                     n2 = mapper_countar[imx][imy]*2;
                     mapar[imx][imy][n2]   = (int16_T) si+1; // for matlab indexing
@@ -172,7 +173,7 @@ void create_mapper_msldemc2mastcam(
         }
     }
     
-    // printf("%d\n",S_im);
+    printf("%d\n",S_im);
     mxFree(mapar);
     mxFree(mapar_base);
     mxFree(mapper_countar);
