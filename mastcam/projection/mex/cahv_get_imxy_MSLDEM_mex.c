@@ -42,7 +42,6 @@ void get_imxy_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
         int32_T msldemc_samples, int32_T msldemc_lines,
         double *msldemc_northing, double *msldemc_easting,
         int8_T **msldemc_imFOVmaskd, 
-        int32_T S_im, int32_T L_im,
         CAHV_MODEL cahv_mdl,
         double **msldemc_imx, double **msldemc_imy)
 {
@@ -141,14 +140,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     mwSize msldemc_imxy_sample_offset,msldemc_imxy_line_offset;
     double *msldemc_northing;
     double *msldemc_easting;
-    int8_T **msldemc_imFOVmaskd;
-    mwSize S_im,L_im;
-    mxArray *cam_C_mxar, *cam_C_mxard;
-    mxArray *cam_A_mxar, *cam_A_mxard;
-    mxArray *cam_H_mxar, *cam_H_mxard;
-    mxArray *cam_V_mxar, *cam_V_mxard;
-    double *cam_C, *cam_A, *cam_H, *cam_V;
-    
+    int8_T **msldemc_imFOVmaskd;    
     double **msldemc_imx;
     double **msldemc_imy;
     
@@ -197,12 +189,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* INPUT 5 msldem imFOV */
     msldemc_imFOVmaskd = set_mxInt8Matrix(prhs[5]);
     
-    /* INPUT 6/7 image S_im, L_im */
-    S_im = (mwSize) mxGetScalar(prhs[6]);
-    L_im = (mwSize) mxGetScalar(prhs[7]);
+    
     
     /* INPUT 7 camera model */
-    cahv_mdl = mxGet_CAHV_MODEL(prhs[8]);
+    cahv_mdl = mxGet_CAHV_MODEL(prhs[6]);
     //cahv_mdl = mxGet_CAHV_MODEL(prhs[6]);
     // printf("%f,%f,%f\n",cahv_mdl.C[0],cahv_mdl.C[1],cahv_mdl.C[2]);
     //printf("%f\n",cahv_mdl.Hdash[0]);
@@ -231,7 +221,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,
         msldemc_northing, msldemc_easting,
         msldemc_imFOVmaskd, 
-        (int32_T) S_im, (int32_T) L_im,
         cahv_mdl,
         msldemc_imx, msldemc_imy);
     
