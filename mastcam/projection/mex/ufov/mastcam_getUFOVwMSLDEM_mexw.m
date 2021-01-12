@@ -78,14 +78,20 @@ msldemc_imFOVhdr = MSTproj.msldemc_imFOVhdr;
 
 
 %%
-tic; msldemc_z = msldem_lazyenvireadRect(MSLDEMdata,...
-               MSTproj.msldemc_imFOVhdr.sample_offset,...
-               MSTproj.msldemc_imFOVhdr.line_offset,...
-               MSTproj.msldemc_imFOVhdr.samples,...
-               MSTproj.msldemc_imFOVhdr.lines,...
-               'precision','double'); toc;
-
-
+% tic; msldemc_z = msldem_lazyenvireadRect(MSLDEMdata,...
+%                MSTproj.msldemc_imFOVhdr.sample_offset,...
+%                MSTproj.msldemc_imFOVhdr.line_offset,...
+%                MSTproj.msldemc_imFOVhdr.samples,...
+%                MSTproj.msldemc_imFOVhdr.lines,...
+%                'precision','double'); toc;
+% 
+% 
+% 
+% 
+% 
+% msldemc_x = msldemc_northing - C_geo(1);
+% msldemc_y = msldemc_easting - C_geo(2);
+% msldemc_z = -msldemc_z-C_geo(3);
 
 l1 = MSTproj.msldemc_imFOVhdr.line_offset+1;
 lend = MSTproj.msldemc_imFOVhdr.line_offset+MSTproj.msldemc_imFOVhdr.lines;
@@ -93,10 +99,8 @@ s1 = MSTproj.msldemc_imFOVhdr.sample_offset+1;
 send = MSTproj.msldemc_imFOVhdr.sample_offset+MSTproj.msldemc_imFOVhdr.samples;
 msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
 msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
-
-msldemc_x = msldemc_northing - C_geo(1);
-msldemc_y = msldemc_easting - C_geo(2);
-msldemc_z = -msldemc_z-C_geo(3);
+msldemc_xmc = msldemc_northing - C_geo(1);
+msldemc_ymc = msldemc_easting - C_geo(2);
 
 %%
 %-------------------------------------------------------------------------%
@@ -118,13 +122,24 @@ if flg_reproc
 %         MSTproj.msldemc_imFOVxy(:,:,2),...4
 %         MSTproj.msldemc_imFOVmask,...5
 %         S_im,L_im); toc;...6,7
-        
-    tic; [ msldemc_imUFOVmask_ctr ] = get_msldemcUFOVmask_ctr_wmsldemcUFOVmask_mex(...
-        msldemc_z,...0
-        msldemc_x,...1
-        msldemc_y,...2
-        MSTproj.msldemc_imFOVmask,...5
-        S_im,L_im,cmmdl_geo); toc;...6,7
+
+    
+
+%     tic; [ msldemc_imUFOVmask_ctr ] = get_msldemtUFOVmask_wmsldemc_L_mex(...
+%         MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+%         msldemc_x,msldemc_y,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo,...
+%         msldemc_z,msldemc_x,msldemc_y,MSTproj.msldemc_imFOVmask); toc;
+    
+    tic; [ msldemc_imUFOVmask_ctr ] = get_msldemtUFOVmask_ctr_wmsldemc_L2_mex(...
+        MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+        msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
+%         
+%     tic; [ msldemc_imUFOVmask_ctr ] = get_msldemcUFOVmask_ctr_wmsldemcUFOVmask_mex(...
+%         msldemc_z,...0
+%         msldemc_x,...1
+%         msldemc_y,...2
+%         MSTproj.msldemc_imFOVmask,...5
+%         S_im,L_im,cmmdl_geo); toc;...6,7
     
     if save_file
         basename_msldem = MSLDEMdata.basename;
@@ -143,7 +158,7 @@ else
         error('MSLDEM used for the cache is different from that of input.');
     end
 end    
-msldemc_imUFOVmaskflg = msldemc_imUFOVmask_ctr;
+msldemc_imUFOVmaskflg = or(msldemc_imUFOVmask_ctr,int8(MSTproj.msldemc_imFOVmask_ctrnn));
 
 %% Safeguarding
 %-------------------------------------------------------------------------%
@@ -155,18 +170,18 @@ if contains(border_assess_opt,'d')
     [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_wdedge,force,load_cache_ifexist);
     
     if flg_reproc
-        tic; [msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask] = get_msldemt_d_mex(...
-            MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
-            msldemc_northing,msldemc_easting,...
-            MSTproj.msldemc_imFOVmask,msldemc_imUFOVmaskflg,cmmdl_geo); toc;
+%         tic; [msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask] = get_msldemt_d_mex(...
+%             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+%             msldemc_northing,msldemc_easting,...
+%             MSTproj.msldemc_imFOVmask,msldemc_imUFOVmaskflg,cmmdl_geo); toc;
+%         
+%         msldemt_x =  msldemt_x - C_geo(1);
+%         msldemt_y =  msldemt_y - C_geo(2);
+%         msldemt_z = -msldemt_z - C_geo(3);
         
-        msldemt_x =  msldemt_x - C_geo(1);
-        msldemt_y =  msldemt_y - C_geo(2);
-        msldemt_z = -msldemt_z - C_geo(3);
-        
-        if any(msldemt_imFOVmask==1)
-            fprintf('Pixels with nampc<0 shows up. May not work properly.');
-        end
+        % if any(msldemt_imFOVmask==1)
+        %     fprintf('Pixels with nampc<0 shows up. May not work properly.');
+        % end
         
         % Evaluate the corner of the pixels
         %  o---------o
@@ -175,18 +190,22 @@ if contains(border_assess_opt,'d')
         %  |         |
         %  o---------o (c+1/2,l+1/2)
 
-        tic; [ msldemc_imUFOVmask_d ] = get_msldemtUFOVmask_wmsldemc_mex(...
-            msldemc_z,...0
-            msldemc_x,...1
-            msldemc_y,...2
-            MSTproj.msldemc_imFOVmask,...3
-            S_im,L_im,cmmdl_geo,...4,5
-            msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask); toc;
+%         tic; [ msldemc_imUFOVmask_d ] = get_msldemtUFOVmask_wmsldemc_mex(...
+%             msldemc_z,...0
+%             msldemc_x,...1
+%             msldemc_y,...2
+%             MSTproj.msldemc_imFOVmask,...3
+%             S_im,L_im,cmmdl_geo,...4,5
+%             msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask); toc;
+        
+        tic; [ msldemt_imUFOVmask_d ] = get_msldemtUFOVmask_d_wmsldemc_L2_mex(...
+        MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+        msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
 
         % save msldemc_imUFOVmask_d.mat msldemc_imUFOVmask_d;
 
         tic; [ msldemc_imUFOVmask_d ] = get_msldemcUFOVmask_wVrtxPxlmsldemtUFOVmask(...
-            msldemc_imUFOVmask_d,...0
+            msldemt_imUFOVmask_d,...0
             MSTproj.msldemc_imFOVmask); toc; ...1
             
         if save_file
