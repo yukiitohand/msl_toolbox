@@ -156,6 +156,10 @@ classdef MASTCAMgroup_eye < dynamicprops
                 end
             end
             
+            if isempty(mstdata_ColorCor)
+                warning('mstdata_ColorCor is not loaded. No color corrected image is detected');
+            end
+            
             switch upper(data_proc_code)
                 case {'DRXX','DRLX','AXI1'}
                     mstmsi = MASTCAMMSI(obj.(data_proc_code),...
