@@ -117,8 +117,8 @@ msldemc_easting  = MSLDEMdata.hdr.x(srnge(1):srnge(2));
 
 msldemc_imFOVmask = msldem_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 msldemc_imFOVmask(msldemc_imFOVmask<0) = 0;
+clear msldem_imFOVmask;
 
-clear dem_imFOV_mask;
 
 tic; [safeguard_mask] = safeguard_msldemc_imFOVmask_napmc(...
     MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_sg,...
@@ -129,9 +129,10 @@ if any(safeguard_mask,'all')
     fprintf('There seems to be a pixel that potentially in FOV and negatvie apmc');
 end
 
+
 msldemc_imFOVmask = msldemc_imFOVmask + safeguard_mask;
 
-clear safeguard_mask;
+clear safeguard_mask; 
 
 
 %% Next computing image coordinate for each pixel of DEM image.
