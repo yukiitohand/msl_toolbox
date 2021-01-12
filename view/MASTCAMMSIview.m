@@ -100,6 +100,7 @@ classdef MASTCAMMSIview < handle
                 end
             end
             obj.obj_HSIview.obj_ISV.add_layer(MSTproj.mastcam_range,'name','Range');
+            obj.obj_HSIview.obj_ISV.add_layer(MSTproj.mastcam_emi,'name','Emission');
             obj.MSTproj = MSTproj;
             if isempty(obj.MSTOrthoISV)
                 obj.MSTOrthoISV = MASTCAMOrthoISV(obj);
