@@ -1,5 +1,6 @@
-function [msldemc_imUFOVmask,msldemc_imUFOVhdr,msldemc_imUFOVxynn,...
-    mastcam_msldemc_nn_UFOVmask] = mastcam_crop_msldemc_imUFOVmask(MSTproj,varargin)
+function [msldemc_imUFOVmask,msldemc_imUFOVhdr,msldemc_imUFOVxynn,mastcam_msldemc_nn_UFOVmask,...
+    mapper_mastcam2msldemc,mapper_msldemc2mastcam_mat,mapcell_msldemc2mastcam]...
+    = mastcam_crop_msldemc_imUFOVmask(MSTproj,varargin)
 
 global msl_env_vars
 dirpath_cache = msl_env_vars.dirpath_cache;
@@ -47,63 +48,89 @@ fpath_ufovc = joinPath(dirpath_cache,basename_cache_ufovc);
 
 if flg_reproc
     if isempty(MSTproj.msldemc_imUFOVmask) || isempty(MSTproj.msldemc_imFOVhdr) ...
-            || isempty(MSTproj.msldemc_imFOVxy) || isempty(MSTproj.mastcam_msldemc_nn)
+            || isempty(MSTproj.mastcam_msldemc_nn)
         error('Processing required preceding computation is loaded');
     end
     
-    % Detect the margin
+    %% Detect the margin
     valid_lines   = find(any(MSTproj.msldemc_imUFOVmask',1));
     lrnge         = [valid_lines(1), valid_lines(end)];
     len_vl        = lrnge(2)-lrnge(1)+1;
     valid_samples = find(any(MSTproj.msldemc_imUFOVmask,1));
     srnge         = [valid_samples(1), valid_samples(end)];
     len_vs        = srnge(2)-srnge(1)+1;
+    
+    if all(valid_lines) && all(valid_samples) && ~isempty(MSTproj.msldemc_imUFOVhdr)
+        msldemc_imUFOVhdr = MSTproj.msldemc_imUFOVhdr;
+        msldemc_northing = msldemc_imUFOVhdr.y;
+        msldemc_easting  = msldemc_imUFOVhdr.x;
+    else   
 
-    l1   = MSTproj.msldemc_imFOVhdr.line_offset+lrnge(1);
-    lend = MSTproj.msldemc_imFOVhdr.line_offset+lrnge(2);
-    s1   = MSTproj.msldemc_imFOVhdr.sample_offset+srnge(1);
-    send = MSTproj.msldemc_imFOVhdr.sample_offset+srnge(2);
-    msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
-    msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
+        l1   = MSTproj.msldemc_imFOVhdr.line_offset+lrnge(1);
+        lend = MSTproj.msldemc_imFOVhdr.line_offset+lrnge(2);
+        s1   = MSTproj.msldemc_imFOVhdr.sample_offset+srnge(1);
+        send = MSTproj.msldemc_imFOVhdr.sample_offset+srnge(2);
+        msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
+        msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
 
-    % Crop the mask
-    msldemc_imUFOVmask = MSTproj.msldemc_imUFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
+        % Crop the mask
+        msldemc_imUFOVmask = MSTproj.msldemc_imUFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
-    % Updated header information (including offset and the size of the mask
-    % image
-    msldemc_imUFOVhdr = [];
-    msldemc_imUFOVhdr.lines   = len_vl;
-    msldemc_imUFOVhdr.samples = len_vs;
-    msldemc_imUFOVhdr.line_offset   = l1-1;
-    msldemc_imUFOVhdr.sample_offset = s1-1;
-    msldemc_imUFOVhdr.y = msldemc_northing;
-    msldemc_imUFOVhdr.x = msldemc_easting;
-
-    % Crop imxy, and fill NaN for the pixels that are not observed.
-    msldemc_imUFOVxy = MSTproj.msldemc_imFOVxy(lrnge(1):lrnge(2),srnge(1):srnge(2),:);
-    mm = (msldemc_imUFOVmask==0);
-    for i=1:2
-        msldemc_imUFOVtmp = msldemc_imUFOVxy(:,:,i);
-        msldemc_imUFOVtmp(mm) = nan;
-        msldemc_imUFOVxy(:,:,i) = msldemc_imUFOVtmp;
+        % Updated header information (including offset and the size of the mask
+        % image
+        msldemc_imUFOVhdr = [];
+        msldemc_imUFOVhdr.lines   = len_vl;
+        msldemc_imUFOVhdr.samples = len_vs;
+        msldemc_imUFOVhdr.line_offset   = l1-1;
+        msldemc_imUFOVhdr.sample_offset = s1-1;
+        msldemc_imUFOVhdr.y = msldemc_northing;
+        msldemc_imUFOVhdr.x = msldemc_easting;
     end
 
+    %% Read imxy, and fill NaN for the pixels that are not observed.
+    cmmdl = mastcamdata_obj.CAM_MDL;
+    rover_nav_coord = mastcamdata_obj.ROVER_NAV;
+    cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
+    cmmdl_geo.get_image_plane_unit_vectors();
+    switch mastcamdata_obj.Linearization
+        case 1
+            tic; [msldemc_imUFOVx,msldemc_imUFOVy] = cahv_get_imxy_MSLDEM_mex(...
+                MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_imUFOVhdr,...
+                msldemc_northing,msldemc_easting,msldemc_imUFOVmask,cmmdl_geo); toc;
+            % msldemc_imUFOVxy = cat(3,dem_imx,dem_imy);
+        case 0
+            tic; [msldemc_imUFOVx,msldemc_imUFOVy] = cahvor_get_imxy_msldem_mex(...
+                MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_imUFOVhdr,...
+                msldemc_northing,msldemc_easting,msldemc_imUFOVmask,cmmdl_geo); toc;
+            % msldemc_imUFOVxy = cat(3,dem_imx,dem_imy);
+
+        otherwise
+            error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+    end
+    % clear dem_imx dem_imy;
+    % msldemc_imUFOVxy = MSTproj.msldemc_imFOVxy(lrnge(1):lrnge(2),srnge(1):srnge(2),:);
+    
+    % mm = (msldemc_imUFOVmask==0);
+    % for i=1:2
+    %     msldemc_imUFOVtmp = msldemc_imUFOVxy(:,:,i);
+    %     msldemc_imUFOVtmp(mm) = nan;
+    %     msldemc_imUFOVxy(:,:,i) = msldemc_imUFOVtmp;
+    % end
+    
+    %% Get nearest neighbor map
     % Mapping from msldemc to the nearest pixel of the MASTCAM image
-    msldemc_imUFOVxynn = round(msldemc_imUFOVxy+1);
+    msldemc_imUFOVxnn = round(msldemc_imUFOVx);
+    msldemc_imUFOVynn = round(msldemc_imUFOVy);
 
     L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
-    for i=1:2
-        msldemc_imUFOVtmp = msldemc_imUFOVxynn(:,:,i);
-        msldemc_imUFOVtmp(msldemc_imUFOVtmp<1) = 1;
-        msldemc_imUFOVtmp(isnan(msldemc_imUFOVtmp)) = -1;
-        if i==1
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp>S_im) = S_im;
-        elseif i==2
-            msldemc_imUFOVtmp(msldemc_imUFOVtmp>L_im) = L_im;
-        end
-        msldemc_imUFOVxynn(:,:,i) = msldemc_imUFOVtmp;
-    end
-    msldemc_imUFOVxynn = int16(msldemc_imUFOVxynn);
+    msldemc_imUFOVxnn(msldemc_imUFOVxnn<0) = 0;
+    msldemc_imUFOVxnn(msldemc_imUFOVxnn>(S_im-1)) = S_im-1;
+    msldemc_imUFOVxnn(isnan(msldemc_imUFOVxnn)) = -1;
+    msldemc_imUFOVxnn = int16(msldemc_imUFOVxnn);
+    msldemc_imUFOVynn(msldemc_imUFOVynn<0) = 0;
+    msldemc_imUFOVynn(msldemc_imUFOVynn>(L_im-1)) = L_im-1;
+    msldemc_imUFOVynn(isnan(msldemc_imUFOVynn)) = -1;
+    msldemc_imUFOVynn = int16(msldemc_imUFOVynn);
 
     % pixel correspondence of mastcam_msldemc_nn is updated for the cropped
     % image.
@@ -111,6 +138,22 @@ if flg_reproc
     mastcam_msldemc_nn_UFOVmask(:,:,1) = mastcam_msldemc_nn_UFOVmask(:,:,1)-int32(srnge(1)-1);
     mastcam_msldemc_nn_UFOVmask(:,:,2) = mastcam_msldemc_nn_UFOVmask(:,:,2)-int32(lrnge(1)-1);
     
+    %% Create mapper array
+    mapper_mastcam2msldemc = msl_create_mapping_mastcam2msldemc_mex_v2(...
+    msldemc_imUFOVxnn,msldemc_imUFOVynn,...
+    mastcam_msldemc_nn_UFOVmask(:,:,1)-1,mastcam_msldemc_nn_UFOVmask(:,:,2)-1);
+
+    [mapidx_msldemc2mastcam,mapcell_msldemc2mastcam]...
+        = msl_create_mapping_msldemc2mastcam_mex_v2(...
+    msldemc_imUFOVxnn,msldemc_imUFOVynn,...
+    mastcam_msldemc_nn_UFOVmask(:,:,1)-1,mastcam_msldemc_nn_UFOVmask(:,:,2)-1);
+
+    mapper_msldemc2mastcam_mat  = sparse(double(mapidx_msldemc2mastcam+1));
+
+    msldemc_imUFOVxynn = cat(3,msldemc_imUFOVxnn,msldemc_imUFOVynn)+1;
+    
+    
+    %% saving files
     if save_file
         basename_msldem = MSLDEMdata.basename;
         dirpath_msldem  = MSLDEMdata.dirpath;
@@ -120,6 +163,7 @@ if flg_reproc
         fprintf('Saving %s ...',fpath_ufovc);
         save(fpath_ufovc,'msldemc_imUFOVmask','msldemc_imUFOVhdr',...
             'msldemc_imUFOVxynn','mastcam_msldemc_nn_UFOVmask',...
+            'mapper_mastcam2msldemc','mapper_msldemc2mastcam_mat','mapcell_msldemc2mastcam',...
             'basename_msldem','dirpath_msldem');
         fprintf('\nDone.\n');
     end
@@ -127,6 +171,7 @@ if flg_reproc
 else
     load(fpath_ufovc,'msldemc_imUFOVmask','msldemc_imUFOVhdr',...
         'msldemc_imUFOVxynn','mastcam_msldemc_nn_UFOVmask',...
+        'mapper_mastcam2msldemc','mapper_msldemc2mastcam_mat','mapcell_msldemc2mastcam',...
         'basename_msldem','dirpath_msldem');
     if ~strcmpi(basename_msldem,MSLDEMdata.basename)
         error('MSLDEM used for the cache is different from that of input.');
