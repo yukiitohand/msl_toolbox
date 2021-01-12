@@ -71,6 +71,7 @@ void get_imxy_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     PmCys = (double*) malloc((size_t) msldemc_samples * sizeof(double));
     for(c=0;c<msldemc_samples;c++){
         pmcy  = msldemc_easting[c] - cam_C[1];
+        PmCys[c] = pmcy;
     }
 
     fid = fopen(msldem_imgpath,"rb");
