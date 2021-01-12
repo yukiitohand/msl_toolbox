@@ -385,8 +385,8 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                         } else if(x_min>S_imm1){
                             x_min = S_imm1;
                         }
-                        if(x_max<0){
-                            x_max = 0;
+                        if(x_max<1){
+                            x_max = 1;
                         } else if(x_max>S_im) {
                             x_max = S_im;
                         }
@@ -396,8 +396,8 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                         }else if(y_min>L_imm1){
                             y_min = L_imm1;
                         }
-                        if(y_max<0){
-                            y_max = 0;
+                        if(y_max<1){
+                            y_max = 1;
                         }else if(y_max>L_im){
                             y_max = L_im;
                         }
@@ -613,6 +613,14 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
         }
     }
     
+    for(xi=0;xi<S_im;xi++){
+        for(yi=0;yi<L_im;yi++){
+            if(bin_count_im[xi][yi]>0){
+                free(bin_im_c[xi][yi]);
+                free(bin_im_l[xi][yi]);
+            }
+        }
+    }
     
     free(PmC_imxap);
     free(PmC_imxap_base);
