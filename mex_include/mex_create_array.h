@@ -1,11 +1,11 @@
 /* mex_create_array.h */
+#ifndef MEX_CREATE_ARRAY_H
+#define MEX_CREATE_ARRAY_H
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "mex.h"
-
-#ifndef MEX_CREATE_ARRAY_H
-#define MEX_CREATE_ARRAY_H
 
 double** set_mxDoubleMatrix(const mxArray *pmi){
     mwSize M,N;
@@ -40,6 +40,19 @@ bool** set_mxLogicalMatrix(const mxArray *pmi){
     M = mxGetM(pmi); N = mxGetN(pmi);
     pm = (bool **) mxMalloc(N*sizeof(bool*));
     pm[0] = mxGetLogicals(pmi);
+    for(j=1;j<N;j++){
+        pm[j] = pm[j-1]+M;
+    }
+    return pm;
+}
+
+uint8_T** set_mxUint8Matrix(const mxArray *pmi){
+    mwSize M,N;
+    mwIndex j;
+    uint8_T **pm;
+    M = mxGetM(pmi); N = mxGetN(pmi);
+    pm = (uint8_T **) mxMalloc(N*sizeof(uint8_T*));
+    pm[0] = mxGetUint8s(pmi);
     for(j=1;j<N;j++){
         pm[j] = pm[j-1]+M;
     }

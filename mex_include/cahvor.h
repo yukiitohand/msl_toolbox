@@ -1,10 +1,10 @@
-/* envi.h */
+/* cahvor.h */
+#ifndef CAHVOR_H
+#define CAHVOR_H
+
 #include <stdint.h>
 #include "matrix.h"
 #include "mex.h"
-
-#ifndef CAHVOR_H
-#define CAHVOR_H
 
 typedef struct CAHV_MODEL {
     double* C;

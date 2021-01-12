@@ -1,9 +1,9 @@
 /* envi.h */
-#include <stdint.h>
-#include "mex.h"
-
 #ifndef ENVI_H
 #define ENVI_H
+
+#include <stdint.h>
+#include "mex.h"
 
 typedef enum EnviHeaderInterleave {
     BSQ,BIP,BIL
@@ -57,7 +57,8 @@ EnviHeader mxGetEnviHeader(const mxArray *pm){
     if(mxGetField(pm,0,"data_ignore_value")!=NULL){
         msldem_hdr.data_ignore_value = mxGetScalar(mxGetField(pm,0,"data_ignore_value"));
     }else{
-        mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Struct is not an envi header");
+        printf("envi:mexGetEnviHeader data_ignore_value is not defined\n");
+        // mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Struct is not an envi header");
     }
     
     return msldem_hdr;
