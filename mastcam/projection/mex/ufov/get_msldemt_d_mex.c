@@ -53,6 +53,7 @@ void get_imxyclm_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     size_t ncpy;
     size_t sz=sizeof(float);
     FILE *fid;
+    float data_ignore_value_float;
     double dem_cl;
     double pmcx,pmcy,pmcz;
     double apmcx,apmcy,apmcz;
@@ -89,16 +90,29 @@ void get_imxyclm_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
     skip_l = (long) sz * (long) msldemc_imxy_sample_offset;
     skip_r = ((long) msldem_hdr.samples - (long) msldemc_samples)* (long) sz - skip_l;
     
+    data_ignore_value_float = (float) msldem_hdr.data_ignore_value + 1.0;
+    
     fseek(fid,skip_l,SEEK_CUR);
     fread(elevlp1,sz,msldemc_samples,fid);
     fseek(fid,skip_r,SEEK_CUR);
+    for(c=0;c<msldemc_samples;c++){
+        if(elevlp1[c]<data_ignore_value_float)
+            elevlp1[c] = NAN;
+    }
     
     // printf("%d,%d,%d\n",skip_l,msldemc_samples*s,skip_r);
     for(l=0;l<msldemc_linesm1;l++){
         memcpy(elevl,elevlp1,ncpy);
+        
         fseek(fid,skip_l,SEEK_CUR);
         fread(elevlp1,sz,msldemc_samples,fid);
         fseek(fid,skip_r,SEEK_CUR);
+        for(c=0;c<msldemc_samples;c++){
+            if(elevlp1[c]<data_ignore_value_float)
+                elevlp1[c] = NAN;
+        }
+        
+        
         
         msldemt_northing[l] = 0.5*(msldemc_northing[l] + msldemc_northing[l+1]);
         pmcx  = msldemt_northing[l] - cam_C[0];
@@ -114,10 +128,11 @@ void get_imxyclm_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                     apmc = apmcx + apmcy + apmcz;
 
                     msldemt_img[c][l] = dem_cl;
-
+                    
+                    // need both if to exclude isnan(apmc)
                     if(apmc>0){
                         msldemt_imFOVmask[c][l] = 2;
-                    } else {
+                    } else if(apmc<0) {
                         msldemt_imFOVmask[c][l] = 1;
                     }
                 }
