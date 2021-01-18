@@ -1,5 +1,6 @@
 classdef MSL_ORBITAL_MAP < ENVIRasterSingleLayerEquirectProjRot0
-    
+    % MSL_ORBITAL_MAP class
+    %  'MSLPLC_1XXX/DATA/MAPS/msl_orbital_map.img'
     properties
         lblpath;
         lbl;
@@ -25,7 +26,7 @@ classdef MSL_ORBITAL_MAP < ENVIRasterSingleLayerEquirectProjRot0
             obj.lblpath = joinPath(dirpath,[basename '.lbl']);
             obj.lbl = pds3lblread(obj.lblpath);
             obj.hdr = msl_places_orbital_map_lbl2hdr(obj.lbl);
-            obj.proj_info = obj.get_proj_info();
+            obj.get_proj_info();
 
         end
         
