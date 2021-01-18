@@ -3,6 +3,7 @@ classdef MSL_ORBITAL_DEM < HSI
     properties
         lblpath;
         lbl;
+        proj_info;
     end
      methods
         function obj = MSL_ORBITAL_DEM(basename,dirpath,varargin)
@@ -25,6 +26,12 @@ classdef MSL_ORBITAL_DEM < HSI
             obj.hdr = msl_orbital_dem_lbl2hdr(obj.lbl);
 
         end
+        
+        function get_proj_info(obj)
+            [obj.proj_info] = msl_orbital_dem_cylindrical_proj_info(obj.lbl);
+        end
+        
+        
      end
     
 end

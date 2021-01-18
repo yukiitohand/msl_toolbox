@@ -36,7 +36,7 @@ switch upper(lbl_info.OBJECT_IMAGE.SAMPLE_TYPE)
 end
 
 hdr_info.header_offset = 0;
-% hdr_info.header_offset = img_obj.RECORD_BYTES;
+hdr_info.header_offset = lbl_info.RECORD_BYTES * (lbl_info.POINTER_IMAGE{2}-1);
 
 switch upper(lbl_info.OBJECT_IMAGE.BAND_STORAGE_TYPE)
     case 'LINE_INTERLEAVED'
