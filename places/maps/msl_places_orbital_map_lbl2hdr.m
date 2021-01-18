@@ -1,5 +1,5 @@
-function [hdr_info] = msl_orbital_dem_lbl2hdr(lbl_info)
-% [hdr_info] = msl_orbital_dem_lbl2hdr(lbl_info)
+function [hdr_info] = msl_places_orbital_map_lbl2hdr(lbl_info)
+% [hdr_info] = msl_places_orbital_map_lbl2hdr(lbl_info)
 %   extract header information (envi format) from MSL orbital_dem lbl
 %  Input Parameters
 %   lbl: struct of LABEL file
@@ -14,38 +14,13 @@ hdr_info.samples = lbl_info.OBJECT_IMAGE.LINE_SAMPLES;
 hdr_info.lines   = lbl_info.OBJECT_IMAGE.LINES;
 hdr_info.bands   = lbl_info.OBJECT_IMAGE.BANDS;
 
-switch upper(lbl_info.OBJECT_IMAGE.SAMPLE_TYPE)
-    case 'PC_REAL'
-        hdr_info.data_type = 4;
-        hdr_info.byte_order = 0;
-    case 'IEEE_REAL'
-        hdr_info.data_type = 4;
-        hdr_info.byte_order = 1;
-    case 'MSB_UNSIGNED_INTEGER'
-        hdr_info.byte_order = 1;
-        switch obj_file_image.OBJECT_IMAGE.SAMPLE_BITS
-            case 16
-                hdr_info.data_type = 12;
-            case 8
-                hdr_info.data_type = 1;
-            otherwise
-                error('Undefined "OBJECT_IMAGE.SAMPLE_BITS"');
-        end
-    otherwise
-        error('The data type: %s is not supported.',lbl_info.OBJECT_IMAGE.SAMPLE_TYPE);
-end
+[hdr_info.data_type,hdr_info.byte_order] = pds3_stsb2envihdr_dtbo(...
+    lbl_info.OBJECT_IMAGE.SAMPLE_TYPE,lbl_info.OBJECT_IMAGE.SAMPLE_BITS);
 
-hdr_info.header_offset = 0;
+[hdr_info.interleave] = pds3_bst2envihdr_interleave(...
+    lbl_info.OBJECT_IMAGE.BAND_STORAGE_TYPE);
+
 hdr_info.header_offset = lbl_info.RECORD_BYTES * (lbl_info.POINTER_IMAGE{2}-1);
-
-switch upper(lbl_info.OBJECT_IMAGE.BAND_STORAGE_TYPE)
-    case 'LINE_INTERLEAVED'
-        hdr_info.interleave = 'bil';
-    case 'BAND_SEQUENTIAL'
-        hdr_info.interleave = 'bsq';
-    otherwise
-        error('The interleave: %s is not supported.',lbl_info.OBJECT_IMAGE.BAND_STORAGE_TYPE);
-end
 
 if isfield(lbl_info.OBJECT_IMAGE,'BAND_NAME')
     hdr_info.band_names = obj_file_image.OBJECT_IMAGE.BAND_NAME;
