@@ -3,6 +3,7 @@
 #define ENVI_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "mex.h"
 
 typedef enum EnviHeaderInterleave {
@@ -63,6 +64,22 @@ EnviHeader mxGetEnviHeader(const mxArray *pm){
     
     return msldem_hdr;
     
+}
+
+bool isComputerLSBF(void){
+    int i = 1;
+    char *c = (char*)&i;
+    
+    if (*c) {
+        /* little endian */
+        return true;
+        //printf("Little endian");
+    } else {
+        /* big endian */
+        return false;
+        // printf("Big endian");
+    }
+        
 }
 
 #endif
