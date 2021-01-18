@@ -123,7 +123,8 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
     double pmcx,pmcy,pmcz,apmc;
     
     cam_C = cahv_mdl.C; cam_A = cahv_mdl.A; cam_H = cahv_mdl.H; cam_V = cahv_mdl.V;
-    
+    // S_imm1 = S_im - 1;
+    // L_imm1 = L_im - 1;
     
     fid = fopen(msldem_imgpath,"rb");
     
@@ -263,16 +264,16 @@ void proj_mastcam2MSLDEM(char *msldem_imgpath, EnviHeader msldem_header,
                             x_min = 0;
                         if(x_min>S_im)
                             x_min = S_im;
-                        if(x_max<1)
-                            x_max = 1;
+                        if(x_max<0)
+                            x_max = 0;
                         if(x_max>S_im)
                             x_max = S_im;
                         if(y_min<0)
                             y_min = 0;
                         if(y_min>L_im)
                             y_min = L_im;
-                        if(y_max<1)
-                            y_max = 1;
+                        if(y_max<0)
+                            y_max = 0;
                         if(y_max>L_im)
                             y_max = L_im;
                         
