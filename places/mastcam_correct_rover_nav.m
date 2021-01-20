@@ -180,7 +180,14 @@ switch tlaxis
         error('Undefined AXIS %s.',tlaxis);
 end
 
-[el_cor]  = get_MSLDEM_elevation(north_cor,east_cor,MSLDEMdata);
+x = MSLDEMdata.easting2x(east_cor);
+y = MSLDEMdata.northing2y(north_cor);
+[el_cor]  = get_msl_elevation(x,y,MSLDEMdata);
+rover_nav_cor.DEM_PIXEL_LINE = y-0.5;
+rover_nav_cor.DEM_PIXEL_SAMPLE = x-0.5;
+rover_nav_cor.PLANETOCENTRIC_LATITUDE = MSLDEMdata.latitude(y);
+rover_nav_cor.LONGITUDE = MSLDEMdata.longitude(x);
+rover_nav_cor.DEM = MSLDEMdata.basename;
 rover_nav_cor.NORTHING  = north_cor;
 rover_nav_cor.EASTING   = east_cor ;
 rover_nav_cor.ELEVATION = el_cor   ;
