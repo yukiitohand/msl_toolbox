@@ -64,18 +64,37 @@ classdef MASTCAMgroup < handle
             end
         end
         
+        function update_ROVER_NAV(obj,varargin)
+            if isempty(varargin) 
+            elseif length(varargin)==1
+                obj.ROVER_NAV = varargin{1};
+            else
+                error('Input is invalid');
+            end
+            obj.L.update_ROVER_NAV(obj.ROVER_NAV);
+            obj.R.update_ROVER_NAV(obj.ROVER_NAV);
+        end
+        function update_ROVER_NAV_DEM(obj,MSLDEMdata)
+            obj.ROVER_NAV.update_DEM(MSLDEMdata);
+            obj.update_ROVER_NAV();
+        end
+        function update_ROVER_NAV_MAP(obj,MSLOrthodata)
+            obj.ROVER_NAV.update_MAP(MSLOrthodata);
+            obj.update_ROVER_NAV();
+        end
+        
         function delete(obj)
             if ~isempty(obj.L)
-                delete(obj.L);
+                % delete(obj.L);
             end
             if ~isempty(obj.R)
-                delete(obj.R);
+                % delete(obj.R);
             end
             if ~isempty(obj.RMC)
-                delete(obj.RMC);
+                % delete(obj.RMC);
             end
             if ~isempty(obj.ROVER_NAV)
-                delete(obj.ROVER_NAV);
+                % delete(obj.ROVER_NAV);
             end
         end
     end

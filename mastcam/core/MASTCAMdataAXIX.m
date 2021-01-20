@@ -133,6 +133,18 @@ classdef MASTCAMdataAXIX < HSI
             %     obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
         end
         
+        function update_ROVER_NAV(obj,rover_nav_new)
+           obj.ROVER_NAV = rover_nav_new;
+        end
+        
+        function update_ROVER_NAV_DEM(obj,MSLDEMdata)
+           obj.ROVER_NAV.update_DEM(MSLDEMdata);
+        end
+        
+        function update_ROVER_NAV_MAP(obj,MSLOrthodata)
+           obj.ROVER_NAV.update_DEM(MSLOrthodata);
+        end
+
 %         function [] = get_CAM_MDL_GEO(obj)
 %             [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
 %                 [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL);
@@ -206,10 +218,10 @@ classdef MASTCAMdataAXIX < HSI
         end
         
         function delete(obj)
-            delete(obj.CAM_MDL);
-            delete(obj.CAM_MDL_GEO);
-            delete(obj.ROVER_NAV);
-            delete(obj.RMC);
+            % delete(obj.CAM_MDL);
+            % delete(obj.CAM_MDL_GEO);
+            % delete(obj.ROVER_NAV);
+            % delete(obj.RMC);
         end   
     end
 end

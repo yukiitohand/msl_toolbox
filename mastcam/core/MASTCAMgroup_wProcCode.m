@@ -148,19 +148,59 @@ classdef MASTCAMgroup_wProcCode < dynamicprops
                 && obj.Linearization == mstgrp_wpc.Linearization
                 tf = true;
             else
-                tf - false;
+                tf = false;
             end
+        end
+        
+        function update_ROVER_NAV(obj,varargin)
+            if isempty(varargin) 
+            elseif length(varargin)==1
+                obj.ROVER_NAV = varargin{1};
+            else
+                error('Input is invalid');
+            end
+            if ~isempty(obj.C)
+                for k=1:length(obj.C)
+                    obj.C(k).update_ROVER_NAV(obj.ROVER_NAV);
+                end
+            end
+            if ~isempty(obj.D)
+                for k=1:length(obj.D)
+                    obj.D(k).update_ROVER_NAV(obj.ROVER_NAV);
+                end
+            end
+            if ~isempty(obj.E)
+                for k=1:length(obj.E)
+                    obj.E(k).update_ROVER_NAV(obj.ROVER_NAV);
+                end
+            end
+            for i=1:length(obj.addedProps)
+                propi = obj.addedProps{i};
+                for k=1:length(obj.(propi))
+                    obj.(propi)(k).update_ROVER_NAV(obj.ROVER_NAV);
+                end
+            end
+        end
+        
+        function update_ROVER_NAV_DEM(obj,MSLDEMdata)
+            obj.ROVER_NAV.update_DEM(MSLDEMdata);
+            obj.update_ROVER_NAV();
+        end
+        
+        function update_ROVER_NAV_MAP(obj,MSLOrthodata)
+            obj.ROVER_NAV.update_DEM(MSLOrthodata);
+            obj.update_ROVER_NAV();
         end
         
         function delete(obj)
             if ~isempty(obj.RMC)
-                delete(obj.RMC);
+                % delete(obj.RMC);
             end
             if ~isempty(obj.ROVER_NAV)
-                delete(obj.ROVER_NAV);
+                % delete(obj.ROVER_NAV);
             end
             if ~isempty(obj.CAM_MDL)
-                delete(obj.CAM_MDL);
+                % delete(obj.CAM_MDL);
             end
             % if ~isempty(obj.CAM_MDL_GEO) && isvalid(obj.CAM_MDL_GEO)
             %     delete(obj.CAM_MDL_GEO);

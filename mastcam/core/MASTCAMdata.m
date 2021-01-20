@@ -78,26 +78,6 @@ classdef MASTCAMdata < HSI
             %     obj.RMC.SITE,obj.RMC.DRIVE,obj.RMC.POSE,varargin{:});
         end
         
-%         function [] = get_CAM_MDL_GEO(obj)
-%             [imxy_direc_rov] = get_3d_pointing_from_CAHV_v2(...
-%                 [obj.hdr.lines,obj.hdr.samples],obj.CAM_MDL);
-%             cmmdl_A_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.A';
-%             cmmdl_C_rov0 = obj.ROVER_NAV.rot_mat * obj.CAM_MDL.C';
-%             imxy_direc_rov_2d = reshape(imxy_direc_rov,[obj.hdr.lines*obj.hdr.samples,3])';
-%             imxy_direc_rov0_2d = obj.ROVER_NAV.rot_mat * imxy_direc_rov_2d;
-%             imxy_direc_rov0 = reshape(imxy_direc_rov0_2d',[obj.hdr.lines,obj.hdr.samples,3]);
-%             cmmdl_C_geo = cmmdl_C_rov0 + [obj.ROVER_NAV.NORTHING; 
-%                               obj.ROVER_NAV.EASTING;
-%                               -obj.ROVER_NAV.ELEVATION];
-%                           
-%             obj.CAM_MDL_GEO.A_rov0 = cmmdl_A_rov0;
-%             obj.CAM_MDL_GEO.C_rov0 = cmmdl_C_rov0;
-%             obj.CAM_MDL_GEO.C_geo  = cmmdl_C_geo;
-%             obj.CAM_MDL_GEO.imxy_direc_rov = imxy_direc_rov;
-%             obj.CAM_MDL_GEO.imxy_direc_rov0 = imxy_direc_rov0;
-%             
-%         end
-        
         function get_instrument_id(obj)
             obj.INSTRUMENT_ID = obj.lbl.INSTRUMENT_ID;
         end
@@ -106,17 +86,21 @@ classdef MASTCAMdata < HSI
             obj.FILTER_NUMBER = obj.lbl.GROUP_IMAGE_REQUEST_PARMS.FILTER_NUMBER;
         end
         
-        
-        
-        
-
-
+        function update_ROVER_NAV(obj,rover_nav_new)
+           obj.ROVER_NAV = rover_nav_new;
+        end
+        function update_ROVER_NAV_DEM(obj,MSLDEMdata)
+           obj.ROVER_NAV.update_DEM(MSLDEMdata);
+        end
+        function update_ROVER_NAV_MAP(obj,MSLOrthodata)
+           obj.ROVER_NAV.update_DEM(MSLOrthodata);
+        end
         
         function delete(obj)
-            delete(obj.CAM_MDL);
-            delete(obj.CAM_MDL_GEO);
-            delete(obj.ROVER_NAV);
-            delete(obj.RMC);
+            % delete(obj.CAM_MDL);
+            % delete(obj.CAM_MDL_GEO);
+            % delete(obj.ROVER_NAV);
+            % delete(obj.RMC);
         end   
     end
 end

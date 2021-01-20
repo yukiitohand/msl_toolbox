@@ -113,13 +113,13 @@ classdef MASTCAMgroup_eye < dynamicprops
 
         function delete(obj)
             if ~isempty(obj.RMC)
-                delete(obj.RMC);
+                % delete(obj.RMC);
             end
             if ~isempty(obj.ROVER_NAV)
-                delete(obj.ROVER_NAV);
+                % delete(obj.ROVER_NAV);
             end
             if ~isempty(obj.CAM_MDL)
-                delete(obj.CAM_MDL);
+                % delete(obj.CAM_MDL);
             end
             delete(obj.DRXX);
             delete(obj.DRCX);
@@ -170,6 +170,43 @@ classdef MASTCAMgroup_eye < dynamicprops
                     error('Undefined DATA_PROC_CODE %s.',data_proc_code);
             end
             
+        end
+        
+        function update_ROVER_NAV(obj,varargin)
+            if isempty(varargin) 
+            elseif length(varargin)==1
+                obj.ROVER_NAV = varargin{1};
+            else
+                error('Input is invalid');
+            end
+            if ~isempty(obj.DRXX)
+                obj.DRXX.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.DRCX)
+                obj.DRCX.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.DRCX)
+                obj.DRCX.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.DRLX)
+                obj.DRLX.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.DRCL)
+                obj.DRCL.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+            if ~isempty(obj.AXI1)
+                obj.AXI1.update_ROVER_NAV(obj.ROVER_NAV);
+            end
+        end
+        
+        function update_ROVER_NAV_DEM(obj,MSLDEMdata)
+            obj.ROVER_NAV.update_DEM(MSLDEMdata);
+            obj.update_ROVER_NAV();
+        end
+        
+        function update_ROVER_NAV_MAP(obj,MSLOrthodata)
+            obj.ROVER_NAV.update_MAP(MSLOrthodata);
+            obj.update_ROVER_NAV();
         end
         
 %         function [] = get_CAM_MDL_GEO(obj)

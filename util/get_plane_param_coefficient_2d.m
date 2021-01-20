@@ -5,8 +5,8 @@ function [plane_param,is_in_face] = get_plane_param_coefficient_2d(ppv1,ppv2,ppv
 % of the orthogonal projection of a give point vector: pipv onto the plane
 % determined by three vectors (ppv1, ppv2, ppv3).
 % INPUTS
-%  ppv1, ppv2, ppv3: plane positional vectors [3 x 1]
-%  pipv: tested positional vector [3 x 1], [3 x N]
+%  ppv1, ppv2, ppv3: plane positional vectors [2 x 1]
+%  pipv: tested positional vector [2 x 1], [2 x N]
 %  is_gpu: boolean, whether or not to use GPU.
 %  is_page: whether or not to any inputs has the third dimesion.
 % OUTPUTS

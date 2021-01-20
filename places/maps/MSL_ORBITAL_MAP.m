@@ -40,6 +40,7 @@ classdef MSL_ORBITAL_MAP < ENVIRasterSingleLayerEquirectProjRot0
             [subimg] = get_subimage_wPixelRange@ENVIRasterSingleLayerEquirectProjRot0(...
                 obj,xrange,yrange,'Precision','uint8',varargin{:});
         end
+        
      end
     
 end

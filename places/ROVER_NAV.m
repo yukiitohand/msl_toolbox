@@ -30,6 +30,8 @@ classdef ROVER_NAV < handle
         rot_mat
         rot_mat_inv
         version
+        MAP
+        DEM
     end
     
     methods
@@ -86,6 +88,10 @@ classdef ROVER_NAV < handle
                             obj.SOL = varargin{i+1};
                         case 'VERSION'
                             obj.version = varargin{i+1};
+                        case 'MAP'
+                            obj.MAP = varargin{i+1};
+                        case 'DEM'
+                            obj.DEM = varargin{i+1};
                         otherwise
                             error('Parameter: %s', varargin{i});   
                     end
@@ -118,5 +124,33 @@ classdef ROVER_NAV < handle
             obj.rot_mat = get_rot_mat(obj.ROLL,obj.PITCH,obj.YAW);
             obj.rot_mat_inv = get_rot_mat_inv(obj.ROLL,obj.PITCH,obj.YAW);
         end
+        
+        function update_DEM(obj,MSLDEMdata)
+            if ~(isa(MSLDEMdata,'MSL_ORBITAL_DEM') ...
+                    || isa(MSLDEMdata,'MSLGaleDEMMosaic_v3'))
+                error(['The input MSLDEMdata needs to be an object of' ...
+                       ' class MSL_ORBITAL_DEM or MSLGaleDEMMosaic_v3']);
+            end
+            [elev,x,y] = MSLDEMdata.get_elev_wlatlon(...
+                obj.LONGITUDE,obj.PLANETOCENTRIC_LATITUDE);
+            obj.DEM_PIXEL_LINE   = y-0.5; % from the maximum latitude
+            obj.DEM_PIXEL_SAMPLE = x-0.5; % from the westernmost longitude
+            obj.ELEVATION = elev;
+            obj.DEM = MSLDEMdata.basename;
+        end
+        
+        function update_MAP(obj,MSLOrthodata)
+            if ~(isa(MSLOrthodata,'MSL_ORBITAL_MAP') ...
+                    || isa(MSLOrthodata,'MSLGaleOrthoMosaic_v3'))
+                error(['The input MSLDEMdata needs to be an object of' ...
+                       ' class MSL_ORBITAL_DEM or MSLGaleDEMMosaic_v3']);
+            end
+            x = MSLOrthodata.lon2x(obj.LONGITUDE);
+            y = MSLOrthodata.lat2y(obj.PLANETOCENTRIC_LATITUDE);
+            obj.MAP_PIXEL_LINE   = y-0.5; % from the maximum latitude
+            obj.MAP_PIXEL_SAMPLE = x-0.5; % from the westernmost longitude
+            obj.MAP = MSLOrthodata.basename;
+        end
+        
     end
 end
