@@ -40,7 +40,7 @@ for l=1:iter_line
             molaAdata,MSLDEMdata,xrange,yrange,'Pixels');
         
         % compensate the areoid only on 
-        img_new = img_dem + imgA_ua;
+        img_new = double(img_dem) + imgA_ua;
         
         % save the block to the file
         sample_offset = smpl_strt-1; 
