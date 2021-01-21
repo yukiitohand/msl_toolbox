@@ -51,7 +51,7 @@ cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
 cmmdl_geo.get_image_plane_unit_vectors();
 
 coef_mrgn = 2.1;
-proc_mode = 'ENCLOSING_RECTANGLE'; %'SURROUNDING_COMPLEMENT';
+proc_mode = 'SURROUNDING_COMPLEMENT'; %'ENCLOSING_RECTANGLE';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
