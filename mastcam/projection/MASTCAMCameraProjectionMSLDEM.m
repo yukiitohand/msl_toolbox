@@ -468,8 +468,11 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
             lns = min(obj.MSLDEMdata.hdr.lines-ln_offset,...
                 obj.msldemc_imUFOVhdr.lines+2*mrgn);
             
-            tic; msldemc_img = msldem_lazyenvireadRect(obj.MSLDEMdata,...
-                smpl_offset,ln_offset,smpls,lns,'precision','single'); toc;
+            xrange = [smpl_offset+1 smpl_offset+smpls];
+            yrange = [ln_offset+1 ln_offset+lns];
+            
+            tic; msldemc_img = obj.MSLDEMdata.get_subimage_wPixelRange(...
+                xrange,yrange,'precision','single'); toc;
             
             msldemc_img_hdr = [];
             msldemc_img_hdr.sample_offset = smpl_offset;
