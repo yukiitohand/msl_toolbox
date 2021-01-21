@@ -278,8 +278,8 @@ classdef MASTCAMCameraProjectionMSLDEM < handle
         end
         
         function [x_dem,y_dem] = get_imUFOVc_xy_from_NE(obj,x_east,y_north)
-            [x_dem] = round((x_east-obj.msldemc_imUFOVhdr.x(1))/obj.MSLDEMdata.hdr.map_info.dx + 1);
-            [y_dem] = round((obj.msldemc_imUFOVhdr.y(1)-y_north)/obj.MSLDEMdata.hdr.map_info.dy + 1);
+            [x_dem] = round((x_east-obj.msldemc_imUFOVhdr.x(1))/obj.MSLDEMdata.proj_info.map_scale_x + 1);
+            [y_dem] = round((obj.msldemc_imUFOVhdr.y(1)-y_north)/obj.MSLDEMdata.proj_info.map_scale_y + 1);
             if x_dem < 1 || x_dem > obj.msldemc_imUFOVhdr.samples || y_dem < 1 || y_dem > obj.msldemc_imUFOVhdr.lines
                 x_dem = nan; y_dem = nan;
             end

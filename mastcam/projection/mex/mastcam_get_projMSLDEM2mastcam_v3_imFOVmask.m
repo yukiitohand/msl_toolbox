@@ -112,8 +112,8 @@ msldemc_hdr_sg.samples = len_vs;
 msldemc_hdr_sg.line_offset = line_offset;
 msldemc_hdr_sg.sample_offset = sample_offset;
 
-msldemc_northing = MSLDEMdata.hdr.y(lrnge(1):lrnge(2));
-msldemc_easting  = MSLDEMdata.hdr.x(srnge(1):srnge(2));
+msldemc_northing = MSLDEMdata.northing(lrnge(1):lrnge(2));
+msldemc_easting  = MSLDEMdata.easting(srnge(1):srnge(2));
 
 msldemc_imFOVmask = msldem_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 msldemc_imFOVmask(msldemc_imFOVmask<0) = 0;

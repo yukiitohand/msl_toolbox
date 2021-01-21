@@ -78,8 +78,8 @@ l1 = MSTprj.msldemc_imFOVhdr.line_offset+1;
 lend = MSTprj.msldemc_imFOVhdr.line_offset+MSTprj.msldemc_imFOVhdr.lines;
 s1 = MSTprj.msldemc_imFOVhdr.sample_offset+1;
 send = MSTprj.msldemc_imFOVhdr.sample_offset+MSTprj.msldemc_imFOVhdr.samples;
-dem_northing_crop = MSLDEMdata.hdr.y(l1:lend);
-dem_easting_crop  = MSLDEMdata.hdr.x(s1:send);
+dem_northing_crop = MSLDEMdata.northing(l1:lend);
+dem_easting_crop  = MSLDEMdata.easting(s1:send);
 
 % dem_imFOVd_mask_crop = ~isnan(MSTprj.msldemc_imxy(:,:,1));
 

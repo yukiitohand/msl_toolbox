@@ -21,7 +21,7 @@ classdef MSLGaleDEMMosaic_v3 < MSLGaleMosaic_v3
             y = obj.lat2y(lat);
             [elev] = obj.get_elev(x,y);
         end
-        function [elev,xy] = get_elev_wNE(obj,nrthng,estng)
+        function [elev,x,y] = get_elev_wNE(obj,nrthng,estng)
             x = obj.easting2x(estng);
             y = obj.northing2y(nrthng);
             [elev] = obj.get_elev(x,y);
