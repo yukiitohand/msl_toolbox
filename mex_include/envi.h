@@ -4,7 +4,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h> 
 #include "mex.h"
+#include "matrix.h"
 
 typedef enum EnviHeaderInterleave {
     BSQ,BIP,BIL
@@ -24,6 +26,7 @@ typedef struct EnviHeader {
 
 EnviHeader mxGetEnviHeader(const mxArray *pm){
     EnviHeader msldem_hdr;
+    char *interleave_char;
     
     if(mxGetField(pm,0,"samples")!=NULL){
         msldem_hdr.samples = (int32_T) mxGetScalar(mxGetField(pm,0,"samples"));
@@ -37,6 +40,20 @@ EnviHeader mxGetEnviHeader(const mxArray *pm){
     }
     if(mxGetField(pm,0,"bands")!=NULL){
         msldem_hdr.bands = (int32_T) mxGetScalar(mxGetField(pm,0,"bands"));
+    }else{
+        mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Struct is not an envi header");
+    }
+    if(mxGetField(pm,0,"interleave")!=NULL){
+        interleave_char = mxArrayToString(mxGetField(pm,0,"interleave"));
+        if(strcmp(interleave_char,"bil")==0){
+            msldem_hdr.interleave = BIL;
+        } else if(strcmp(interleave_char,"bsq")==0) {
+            msldem_hdr.interleave = BSQ;
+        } else if(strcmp(interleave_char,"bip")==0) {
+            msldem_hdr.interleave = BIP;
+        } else {
+            mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Interleave is not valid");
+        }
     }else{
         mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Struct is not an envi header");
     }
@@ -62,6 +79,7 @@ EnviHeader mxGetEnviHeader(const mxArray *pm){
         // mexErrMsgIdAndTxt("envi:mexGetEnviHeader","Struct is not an envi header");
     }
     
+    mxFree(interleave_char);
     return msldem_hdr;
     
 }
@@ -80,6 +98,48 @@ bool isComputerLSBF(void){
         // printf("Big endian");
     }
         
+}
+
+/* function : swapFloat_shuffle 
+ *  swap the bytes of the input float variable into the reverse direction 
+ *  for resolving endian issues using byte shuffling.  
+ *  Input Parameters
+ *    float inFolat: input float before swapped 
+ *  Returns
+ *    float retVal : output float after swapped */
+float swapFloat_shuffle( const float inFloat )
+{
+   float retVal;
+   char *inFloat_char = (char*) &inFloat;
+   char *retVal_char  = (char*) &retVal;
+   
+   // swap the bytes into a temporary buffer
+   retVal_char[0] = inFloat_char[3];
+   retVal_char[1] = inFloat_char[2];
+   retVal_char[2] = inFloat_char[1];
+   retVal_char[3] = inFloat_char[0];
+
+   return retVal;
+}
+
+/* function : swapFloat 
+ *  swap the bytes of the input float variable into the reverse direction 
+ *  for resolving endian issues using bit shifts. 
+ *  Input Parameters
+ *    float inFolat: input float before swapped 
+ *  Returns
+ *    float retVal : output float after swapped */
+float swapFloat( const float inFloat )
+{
+   float retVal;
+   uint32_T *inFloat_int = (uint32_T*) &inFloat;
+   uint32_T *retVal_int  = (uint32_T*) &retVal;
+   
+   *retVal_int = (*inFloat_int<<24) | ( (*inFloat_int<<8) & 0x00FF0000u )
+                 | ( (*inFloat_int>>8) & 0x0000FF00u)
+                 | ( (*inFloat_int>>24) & 0x000000FFu);
+   
+   return retVal;
 }
 
 #endif
