@@ -107,7 +107,7 @@ bool isComputerLSBF(void){
  *    float inFolat: input float before swapped 
  *  Returns
  *    float retVal : output float after swapped */
-float swapFloat_shuffle( const float inFloat )
+float swapFloat_shuffle( float inFloat )
 {
    float retVal;
    char *inFloat_char = (char*) &inFloat;

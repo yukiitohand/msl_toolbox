@@ -59,6 +59,19 @@ uint8_T** set_mxUint8Matrix(const mxArray *pmi){
     return pm;
 }
 
+uint16_T** set_mxUint16Matrix(const mxArray *pmi){
+    mwSize M,N;
+    mwIndex j;
+    uint16_T **pm;
+    M = mxGetM(pmi); N = mxGetN(pmi);
+    pm = (uint16_T **) mxMalloc(N*sizeof(uint16_T*));
+    pm[0] = mxGetUint16s(pmi);
+    for(j=1;j<N;j++){
+        pm[j] = pm[j-1]+M;
+    }
+    return pm;
+}
+
 int8_T** set_mxInt8Matrix(const mxArray *pmi){
     mwSize M,N;
     mwIndex j;
