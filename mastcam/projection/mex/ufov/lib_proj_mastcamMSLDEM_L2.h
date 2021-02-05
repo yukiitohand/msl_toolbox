@@ -1,6 +1,6 @@
 
-#ifndef LIB_PROH_MASTCAMMSLDEM_L2_H
-#define LIB_PROH_MASTCAMMSLDEM_L2_H
+#ifndef LIB_PROJ_MASTCAMMSLDEM_L2_H
+#define LIB_PROJ_MASTCAMMSLDEM_L2_H
 
 #include <stdint.h>
 #include "io64.h"
