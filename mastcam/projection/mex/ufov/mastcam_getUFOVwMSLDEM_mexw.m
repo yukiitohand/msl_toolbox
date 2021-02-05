@@ -17,7 +17,7 @@ function [msldemc_imUFOVmask] = mastcam_getUFOVwMSLDEM_mexw(MSTproj,varargin)
 
 global msl_env_vars
 dirpath_cache = msl_env_vars.dirpath_cache;
-
+coordsys = 'NorthEastNadir';
 border_assess_opt = 'd';
 save_file = true;
 force = false;
@@ -43,6 +43,9 @@ else
             % ## PROCESSING OPTIONS #--------------------------------------
             case 'BORDER_ASSESS_OPT'
                 border_assess_opt = lower(varargin{i+1});
+                
+            case 'COORDINATE_SYSTEM'
+                coordsys = varargin{i+1};
             
             otherwise
                 error('Unrecognized option: %s',varargin{i});
@@ -67,7 +70,36 @@ L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
 %-------------------------------------------------------------------------%
 cmmdl = mastcamdata_obj.CAM_MDL;
 rover_nav_coord = mastcamdata_obj.ROVER_NAV;
-cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+        cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl, ...
+            rover_nav_coord);
+        % cmmdl_geo.get_image_plane_unit_vectors();
+    case {'IAU_MARS_SPHERE'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+             rover_nav_coord,'Mars_Shape','Sphere');
+    case {'IAU_MARS_ELLIPSOID'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+             rover_nav_coord,'Mars_Shape','Ellipsoid');
+    otherwise
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
+end
+cmmdl_geo.get_image_plane_unit_vectors();
+% cmmdl = mastcamdata_obj.CAM_MDL;
+% rover_nav_coord = mastcamdata_obj.ROVER_NAV;
+% cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
 C_geo = cmmdl_geo.C;
 
 %-------------------------------------------------------------------------%
@@ -75,32 +107,11 @@ C_geo = cmmdl_geo.C;
 %-------------------------------------------------------------------------%
 [basename_cache] = mastcam_create_basename_cache(mastcamdata_obj);
 msldemc_imFOVhdr = MSTproj.msldemc_imFOVhdr;
-
-
-%%
-% tic; msldemc_z = msldem_lazyenvireadRect(MSLDEMdata,...
-%                MSTproj.msldemc_imFOVhdr.sample_offset,...
-%                MSTproj.msldemc_imFOVhdr.line_offset,...
-%                MSTproj.msldemc_imFOVhdr.samples,...
-%                MSTproj.msldemc_imFOVhdr.lines,...
-%                'precision','double'); toc;
-% 
-% 
-% 
-% 
-% 
-% msldemc_x = msldemc_northing - C_geo(1);
-% msldemc_y = msldemc_easting - C_geo(2);
-% msldemc_z = -msldemc_z-C_geo(3);
-
-l1 = MSTproj.msldemc_imFOVhdr.line_offset+1;
+l1   = MSTproj.msldemc_imFOVhdr.line_offset+1;
 lend = MSTproj.msldemc_imFOVhdr.line_offset+MSTproj.msldemc_imFOVhdr.lines;
-s1 = MSTproj.msldemc_imFOVhdr.sample_offset+1;
+s1   = MSTproj.msldemc_imFOVhdr.sample_offset+1;
 send = MSTproj.msldemc_imFOVhdr.sample_offset+MSTproj.msldemc_imFOVhdr.samples;
-msldemc_northing = MSLDEMdata.hdr.y(l1:lend);
-msldemc_easting  = MSLDEMdata.hdr.x(s1:send);
-msldemc_xmc = msldemc_northing - C_geo(1);
-msldemc_ymc = msldemc_easting - C_geo(2);
+
 
 %%
 %-------------------------------------------------------------------------%
@@ -110,36 +121,27 @@ basename_imUFOVmask_ctr = sprintf('%s_imUFOVmask_ctr_%s.mat',basename_cache,cach
 fpath_imUFOVmask_ctr = joinPath(dirpath_cache,basename_imUFOVmask_ctr);
 [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_ctr,force,load_cache_ifexist);
 if flg_reproc
-    %---------------------------------------------------------------------%
-    % Get DEM image
-    %---------------------------------------------------------------------%
     
-%     tic; [ msldemc_imUFOVmask_ctr ] = find_hidden_mastcamMSLDEM_v6_mex(...
-%         msldemc_img,...0
-%         msldemc_northing,...1
-%         msldemc_easting,...2
-%         MSTproj.msldemc_imFOVxy(:,:,1),...3
-%         MSTproj.msldemc_imFOVxy(:,:,2),...4
-%         MSTproj.msldemc_imFOVmask,...5
-%         S_im,L_im); toc;...6,7
-
-    
-
-%     tic; [ msldemc_imUFOVmask_ctr ] = get_msldemtUFOVmask_wmsldemc_L_mex(...
-%         MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
-%         msldemc_x,msldemc_y,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo,...
-%         msldemc_z,msldemc_x,msldemc_y,MSTproj.msldemc_imFOVmask); toc;
-    
-    tic; [ msldemc_imUFOVmask_ctr ] = get_msldemtUFOVmask_ctr_wmsldemc_L2_mex(...
-        MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
-        msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
-%         
-%     tic; [ msldemc_imUFOVmask_ctr ] = get_msldemcUFOVmask_ctr_wmsldemcUFOVmask_mex(...
-%         msldemc_z,...0
-%         msldemc_x,...1
-%         msldemc_y,...2
-%         MSTproj.msldemc_imFOVmask,...5
-%         S_im,L_im,cmmdl_geo); toc;...6,7
+    switch upper(coordsys)
+        case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+            msldemc_northing = MSLDEMdata.northing(l1:lend);
+            msldemc_easting  = MSLDEMdata.easting(s1:send);
+            msldemc_xmc      = msldemc_northing - C_geo(1);
+            msldemc_ymc      = msldemc_easting - C_geo(2);
+            tic; [ msldemc_imUFOVmask_ctr ] = get_msldemtUFOVmask_ctr_wmsldemc_L2_mex(...
+                MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+                msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
+        case {'IAU_MARS_SPHERE','IAU_MARS_ELLIPSOID'}
+            msldemc_latitude  = deg2rad(MSLDEMdata.latitude(l1:lend));
+            msldemc_longitude = deg2rad(MSLDEMdata.longitude(s1:send));
+            tic; [ msldemc_imUFOVmask_ctr] = iaumars_get_msldemtUFOVmask_ctr_wmsldemc_L2_mex(...
+                MSLDEMdata.imgpath,MSLDEMdata.hdr, MSLDEMdata.OFFSET, ...
+                MSTproj.msldemc_imFOVhdr,...
+                msldemc_latitude,msldemc_longitude, ...
+                MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
+        otherwise
+             error('COORDINATE_SYSTEM %s is not supported',coordsys);
+    end
     
     if save_file
         basename_msldem = MSLDEMdata.basename;
@@ -169,41 +171,35 @@ if contains(border_assess_opt,'d')
     fpath_imUFOVmask_wdedge = joinPath(dirpath_cache,basename_imUFOVmask_wdedge);
     [flg_reproc] = doyouwanttoprocess(fpath_imUFOVmask_wdedge,force,load_cache_ifexist);
     
-    if flg_reproc
-%         tic; [msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask] = get_msldemt_d_mex(...
-%             MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
-%             msldemc_northing,msldemc_easting,...
-%             MSTproj.msldemc_imFOVmask,msldemc_imUFOVmaskflg,cmmdl_geo); toc;
-%         
-%         msldemt_x =  msldemt_x - C_geo(1);
-%         msldemt_y =  msldemt_y - C_geo(2);
-%         msldemt_z = -msldemt_z - C_geo(3);
-        
-        % if any(msldemt_imFOVmask==1)
-        %     fprintf('Pixels with nampc<0 shows up. May not work properly.');
-        % end
-        
+    if flg_reproc        
         % Evaluate the corner of the pixels
         %  o---------o
         %  |  (c,l)  |
         %  |    X    |  
         %  |         |
         %  o---------o (c+1/2,l+1/2)
-
-%         tic; [ msldemc_imUFOVmask_d ] = get_msldemtUFOVmask_wmsldemc_mex(...
-%             msldemc_z,...0
-%             msldemc_x,...1
-%             msldemc_y,...2
-%             MSTproj.msldemc_imFOVmask,...3
-%             S_im,L_im,cmmdl_geo,...4,5
-%             msldemt_z,msldemt_x,msldemt_y,msldemt_imFOVmask); toc;
         
-        tic; [ msldemt_imUFOVmask_d ] = get_msldemtUFOVmask_d_wmsldemc_L2_mex(...
-        MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
-        msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
-
-        % save msldemc_imUFOVmask_d.mat msldemc_imUFOVmask_d;
-
+        switch upper(coordsys)
+            case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+                msldemc_northing = MSLDEMdata.northing(l1:lend);
+                msldemc_easting  = MSLDEMdata.easting(s1:send);
+                msldemc_xmc      = msldemc_northing - C_geo(1);
+                msldemc_ymc      = msldemc_easting - C_geo(2);
+                tic; [ msldemt_imUFOVmask_d ] = get_msldemtUFOVmask_d_wmsldemc_L2_mex(...
+                    MSLDEMdata.imgpath,MSLDEMdata.hdr,MSTproj.msldemc_imFOVhdr,...
+                    msldemc_xmc,msldemc_ymc,MSTproj.msldemc_imFOVmask,S_im,L_im,cmmdl_geo); toc;
+            case {'IAU_MARS_SPHERE','IAU_MARS_ELLIPSOID'}
+                msldemc_latitude  = deg2rad(MSLDEMdata.latitude(l1:lend));
+                msldemc_longitude = deg2rad(MSLDEMdata.longitude(s1:send));
+                tic; [ msldemt_imUFOVmask_d ] = iaumars_get_msldemtUFOVmask_d_wmsldemc_L2_mex(...
+                    MSLDEMdata.imgpath,MSLDEMdata.hdr, MSLDEMdata.OFFSET, ...
+                    MSTproj.msldemc_imFOVhdr,...
+                    msldemc_latitude,msldemc_longitude,MSTproj.msldemc_imFOVmask, ...
+                    S_im,L_im,cmmdl_geo); toc;     
+            otherwise
+                error('COORDINATE_SYSTEM %s is not supported',coordsys);
+        end
+        
         tic; [ msldemc_imUFOVmask_d ] = get_msldemcUFOVmask_wVrtxPxlmsldemtUFOVmask(...
             msldemt_imUFOVmask_d,...0
             MSTproj.msldemc_imFOVmask); toc; ...1

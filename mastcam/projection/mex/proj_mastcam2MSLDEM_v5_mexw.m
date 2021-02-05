@@ -10,7 +10,6 @@ function [mastcam_NEE,mastcam_msldemc_ref,mastcam_range,mastcam_msldemc_nn,...
 %      https://astrogeology.usgs.gov/search/map/Mars/MarsScienceLaboratory/
 %      Mosaics/MSL_Gale_DEM_Mosaic_10m
 %    MSTprj: object of class MASTCAMCameraProjectionMSLDEM
-%
 %  OUTPUTS:
 %     mastcam_NEE: [L_im x S_im x 3]
 %       pages 1,2,3 are northing, easting, and elevation. 
@@ -25,38 +24,65 @@ function [mastcam_NEE,mastcam_msldemc_ref,mastcam_range,mastcam_msldemc_nn,...
 %       indices and the second is the line indexes.
 %     msldemc_imFOVmask_ctrnn: [L_demc x S_demc x 1]
 %       Boolean, imFOV_mask with hidden points are removed.
-%    
+%  OPTIONAL Parameters
+%   "COORDINATE_SYSTEM": {'NEE','NORTHEASTNADIR','IAU_MARS_SPHERE',
+%      'IAU_MARS_ELLIPSOID'}
+%      coordinate system based on which the imFOVmask is calculated. 'NEE'
+%      means north-east-elevation. (Actually, elevation is looking in the 
+%      nadir direction in this coordinate system.)
+%      (default) 'NORTHEASTNADIR'
+%
+% Copyright (C) 2021 Yuki Itoh <yukiitohand@gmail.com>
 
-cmmdl = mastcamdata_obj.CAM_MDL;
-rover_nav_coord = mastcamdata_obj.ROVER_NAV;
-cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
-cmmdl_geo.get_image_plane_unit_vectors();
-proc_mode = 'ORIGINAL';
+coordsys = 'NorthEastNadir';
 if (rem(length(varargin),2)==1)
     error('Optional parameters should always go by pairs');
 else
     for i=1:2:(length(varargin)-1)
         switch upper(varargin{i})
-            case 'CAMERA_MODEL_GEO'
-                cmmdl_geo = varargin{i+1};
-            case 'PROC_MODE'
-                proc_mode = varargin{i+1};
+            case 'COORDINATE_SYSTEM'
+                coordsys = varargin{i+1};
             otherwise
                 error('Unrecognized option: %s',varargin{i});
         end
     end
 end
 
+cmmdl = mastcamdata_obj.CAM_MDL;
+rover_nav_coord = mastcamdata_obj.ROVER_NAV;
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+        cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl, ...
+            rover_nav_coord);
+        % cmmdl_geo.get_image_plane_unit_vectors();
+    case {'IAU_MARS_SPHERE'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+             rover_nav_coord,'Mars_Shape','Sphere');
+    case {'IAU_MARS_ELLIPSOID'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+             rover_nav_coord,'Mars_Shape','Ellipsoid');
+    otherwise
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
+end
+cmmdl_geo.get_image_plane_unit_vectors();
+
+
 %-------------------------------------------------------------------------%
 % Get the size of the mastcam image
 %-------------------------------------------------------------------------%
 L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
-
-%-------------------------------------------------------------------------%
-% Get cam_C_geo
-%-------------------------------------------------------------------------%
-C_geo = cmmdl_geo.C;
-A_geo = cmmdl_geo.A;
 
 %-------------------------------------------------------------------------%
 % Construct Image grid
@@ -78,63 +104,109 @@ l1 = MSTprj.msldemc_imFOVhdr.line_offset+1;
 lend = MSTprj.msldemc_imFOVhdr.line_offset+MSTprj.msldemc_imFOVhdr.lines;
 s1 = MSTprj.msldemc_imFOVhdr.sample_offset+1;
 send = MSTprj.msldemc_imFOVhdr.sample_offset+MSTprj.msldemc_imFOVhdr.samples;
-dem_northing_crop = MSLDEMdata.northing(l1:lend);
-dem_easting_crop  = MSLDEMdata.easting(s1:send);
+
 
 % dem_imFOVd_mask_crop = ~isnan(MSTprj.msldemc_imxy(:,:,1));
 
 %% Main computation.
-switch mastcamdata_obj.Linearization
-    case 1
-        tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
-            im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
-            cahv_proj_mastcam2MSLDEM_v5_mex(...
-                MSLDEMdata.imgpath,...0
-                MSLDEMdata.hdr,...1
-                MSTprj.msldemc_imFOVhdr,...2
-                dem_northing_crop,...3
-                dem_easting_crop,...4
-                MSTprj.msldemc_imFOVmask,...5
-                S_im,L_im,...6,7
-                cmmdl_geo,...8
-                PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
-        % comment out below is for an obsolete function. superseded by the
-        % function above because it is faster and memory efficient.
-        % tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
-        %         im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
-        %     proj_mastcam2MSLDEM_v4_mex(...
-        %         MSLDEMdata.imgpath,...0
-        %         MSLDEMdata.hdr,...1
-        %         MSTprj.msldemc_imFOVhdr,...2
-        %         dem_northing_crop,...3
-        %         dem_easting_crop,...4
-        %         MSTprj.msldemc_imFOVxy(:,:,1),...5
-        %         MSTprj.msldemc_imFOVxy(:,:,2),...6
-        %         MSTprj.msldemc_imFOVmask,...7
-        %         S_im,L_im,...8,9
-        %         cmmdl_geo,...10
-        %         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 11,12,13
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+        dem_northing_crop = MSLDEMdata.northing(l1:lend);
+        dem_easting_crop  = MSLDEMdata.easting(s1:send);
+        switch mastcamdata_obj.Linearization
+            case 1
+                tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy, ...
+                    msldem_refs,im_range,im_nnx,im_nny,im_emi, ...
+                    im_pnx,im_pny,im_pnz,im_pc] = ...
+                    cahv_proj_mastcam2MSLDEM_v5_mex(...
+                        MSLDEMdata.imgpath,...0
+                        MSLDEMdata.hdr,...1
+                        MSTprj.msldemc_imFOVhdr,...2
+                        dem_northing_crop,...3
+                        dem_easting_crop,...4
+                        MSTprj.msldemc_imFOVmask,...5
+                        S_im,L_im,...6,7
+                        cmmdl_geo,...8
+                        PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
+                % comment out below is for an obsolete function. superseded by the
+                % function above because it is faster and memory efficient.
+                % tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
+                %         im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
+                %     proj_mastcam2MSLDEM_v4_mex(...
+                %         MSLDEMdata.imgpath,...0
+                %         MSLDEMdata.hdr,...1
+                %         MSTprj.msldemc_imFOVhdr,...2
+                %         dem_northing_crop,...3
+                %         dem_easting_crop,...4
+                %         MSTprj.msldemc_imFOVxy(:,:,1),...5
+                %         MSTprj.msldemc_imFOVxy(:,:,2),...6
+                %         MSTprj.msldemc_imFOVmask,...7
+                %         S_im,L_im,...8,9
+                %         cmmdl_geo,...10
+                %         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 11,12,13
 
-    case 0
-        
-        tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
-                    im_nnx,im_nny,im_emi,im_pnx,im_pny,im_pnz,im_pc] = ...
-                cahvor_proj_mastcam2MSLDEM_v5_mex(...
-                    MSLDEMdata.imgpath,...0
-                    MSLDEMdata.hdr,...1
-                    MSTprj.msldemc_imFOVhdr,...2
-                    dem_northing_crop,...3
-                    dem_easting_crop,...4
-                    MSTprj.msldemc_imFOVmask,...5
-                    S_im,L_im,...6,7
-                    cmmdl_geo,...8
-                    PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
-        
+            case 0
+
+                tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy, ...
+                    msldem_refs,im_range,im_nnx,im_nny,im_emi, ...
+                    im_pnx,im_pny,im_pnz,im_pc] = ...
+                    cahvor_proj_mastcam2MSLDEM_v5_mex(...
+                        MSLDEMdata.imgpath,...0
+                        MSLDEMdata.hdr,...1
+                        MSTprj.msldemc_imFOVhdr,...2
+                        dem_northing_crop,...3
+                        dem_easting_crop,...4
+                        MSTprj.msldemc_imFOVmask,...5
+                        S_im,L_im,...6,7
+                        cmmdl_geo,...8
+                        PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
+
+
+            otherwise
+                error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+        end
+    case {'IAU_MARS_SPHERE','IAU_MARS_ELLIPSOID'}
+        demc_latitude  = deg2rad(MSLDEMdata.latitude(l1:lend));
+        demc_longitude = deg2rad(MSLDEMdata.longitude(s1:send));
+        switch mastcamdata_obj.Linearization
+            case 1
+                tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy, ...
+                    msldem_refs,im_range,im_nnx,im_nny,im_emi, ...
+                    im_pnx,im_pny,im_pnz,im_pc] = ...
+                    cahv_iaumars_proj_mastcam2MSLDEM_v5_mex(...
+                        MSLDEMdata.imgpath,         ...0
+                        MSLDEMdata.hdr,             ...1
+                        MSTprj.msldemc_imFOVhdr,    ...2
+                        demc_latitude,              ...3
+                        demc_longitude,             ...4
+                        MSLDEMdata.OFFSET,          ...5
+                        MSTprj.msldemc_imFOVmask,   ...6
+                        S_im,L_im,                  ...7,8
+                        cmmdl_geo,                  ...9
+                        PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 10,11,12
+            case 0
+                tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy, ...
+                    msldem_refs,im_range,im_nnx,im_nny,im_emi, ...
+                    im_pnx,im_pny,im_pnz,im_pc] = ...
+                    cahvor_iaumars_proj_mastcam2MSLDEM_v5_mex(...
+                        MSLDEMdata.imgpath,         ...0
+                        MSLDEMdata.hdr,             ...1
+                        MSTprj.msldemc_imFOVhdr,    ...2
+                        demc_latitude,              ...3
+                        demc_longitude,             ...4
+                        MSLDEMdata.OFFSET,          ...5
+                        MSTprj.msldemc_imFOVmask,   ...6
+                        S_im,L_im,                  ...7,8
+                        cmmdl_geo,                  ...9
+                        PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 10,11,12
+                
+            otherwise
+                error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+        end  
         
     otherwise
-        error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
 end
-
 
 
 

@@ -37,19 +37,27 @@ function [msldemc_imFOVmask,msldemc_imFOVhdr,L_im,S_im,cmmdl_geo,option]...
 %      msldemc_imFOVhdr.x = msldemc_easting;
 %   L_im, S_im: scalar, size of the mastcam image 
 %   cmmdl_geo: CAM_MDL class obj, 
-%      camera model defined on the geographical xyz coordinate (north - east - negative elevation) 
+%      camera model defined on the selected coordinate system  
 %   option: struct, option of the method
 %      field: COEF_MARGIN
+%  OPTIONAL Parameters
+%   "COORDINATE_SYSTEM": {'NEE','NORTHEASTNADIR','IAU_MARS_SPHERE',
+%      'IAU_MARS_ELLIPSOID'}
+%      coordinate system based on which the imFOVmask is calculated. 'NEE'
+%      means north-east-elevation. (Actually, elevation is looking in the 
+%      nadir direction in this coordinate system.)
+%      (default) 'NORTHEASTNADIR'
+%   "PROC_MODE": {'ENCLOSING_RECTANGLE',''SURROUNDING_COMPLEMENT'}
+%      processing mode
+%      (default) 'SURROUNDING_COMPLEMENT' 
+%   "COEF_MARGIN"
+%      (default) 2.1
 %   
 
 
 %% GET CAMERA, ROVER_NAV, and Image size information
 
-cmmdl = mastcamdata_obj.CAM_MDL;
-rover_nav_coord = mastcamdata_obj.ROVER_NAV;
-cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl,rover_nav_coord);
-cmmdl_geo.get_image_plane_unit_vectors();
-
+coordsys = 'NorthEastNadir';
 coef_mrgn = 2.1;
 proc_mode = 'SURROUNDING_COMPLEMENT'; %'ENCLOSING_RECTANGLE';
 if (rem(length(varargin),2)==1)
@@ -59,8 +67,8 @@ else
         switch upper(varargin{i})
             case 'COEF_MARGIN'
                 coef_mrgn = varargin{i+1};
-            case 'CAMERA_MODEL_GEO'
-                cmmdl_geo = varargin{i+1};
+            case 'COORDINATE_SYSTEM'
+                coordsys = varargin{i+1};
             case 'PROC_MODE'
                 proc_mode = varargin{i+1};
             otherwise
@@ -69,23 +77,81 @@ else
     end
 end
 
+
+cmmdl = mastcamdata_obj.CAM_MDL;
+rover_nav_coord = mastcamdata_obj.ROVER_NAV;
+
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR','NENADIR'}
+        cmmdl_geo = transform_CAHVOR_MODEL_wROVER_NAV(cmmdl, ...
+            rover_nav_coord);
+        % cmmdl_geo.get_image_plane_unit_vectors();
+    case {'IAU_MARS_SPHERE'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+            rover_nav_coord,'Mars_Shape','Sphere');
+        % Get mars radius
+        [mars_radii] = mars_get_radii('Sphere');
+        mars_re = mars_radii; mars_rp = mars_radii;
+    case {'IAU_MARS_ELLIPSOID'}
+        if ~isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+            error([ ...
+                'MSLDEMdata needs to be an object of MSLGaleMosaicRadius_v3,' ...
+                ' a subclass of MSLGaleDEMMosaic_v3' ...
+                ]);
+        end
+        [cmmdl_geo] = transform_CAHVOR_MODEL_ROVERNAV2IAUMARS(cmmdl, ...
+             rover_nav_coord,'Mars_Shape','Ellipsoid');
+        [mars_radii] = mars_get_radii('Ellipsoid');
+        mars_re = mars_radii(1); mars_rp = mars_radii(2);
+    otherwise
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
+end
+cmmdl_geo.get_image_plane_unit_vectors();
+
 %-------------------------------------------------------------------------%
 % Get the size of the mastcam image
 %-------------------------------------------------------------------------%
 L_im = mastcamdata_obj.L_im; S_im = mastcamdata_obj.S_im;
 
 %% First compute dem_imFOV_mask
-switch mastcamdata_obj.Linearization
-    case 1
-        [msldem_imFOVmask] = mastcam_get_imFOVmask_msldem_cahvor_lr1(...
-            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
-    case 0
-        [msldem_imFOVmask,lrange,srange]...
-            = mastcam_get_imFOVmask_msldem_cahvor_lr0(...
-            MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR'}
+        switch mastcamdata_obj.Linearization
+            case 1
+                [msldem_imFOVmask] = mastcam_get_imFOVmask_msldem_cahvor_lr1(...
+                    MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
+            case 0
+                [msldem_imFOVmask,lrange,srange]...
+                    = mastcam_get_imFOVmask_msldem_cahvor_lr0(...
+                    MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode);
+
+            otherwise
+                error('Linearization %d is not supported', ...
+                    mastcamdata_obj.Linearization);
+        end
+    case {'IAU_MARS_SPHERE','IAU_MARS_ELLIPSOID'}
+        switch mastcamdata_obj.Linearization
+            case 1
+                [msldem_imFOVmask] = mastcam_get_imFOVmask_msldem_cahvor_iaumars_lr1(...
+                    MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode,mars_re,mars_rp);
+            case 0
+                [msldem_imFOVmask,lrange,srange]...
+                    = mastcam_get_imFOVmask_msldem_cahvor_iaumars_lr0(...
+                    MSLDEMdata,L_im,S_im,cmmdl_geo,coef_mrgn,proc_mode,mars_re,mars_rp);
+
+            otherwise
+                error('Linearization %d is not supported', ...
+                    mastcamdata_obj.Linearization);
+        end
         
     otherwise
-        error('Linearization %d is not supported',mastcamdata_obj.Linearization);
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
 end
 
 % [dem_imFOV_mask,dem_imFOV_mask_xyd] = get_imFOV_mask_MSLDEM(cmmdl_geo,...
@@ -112,18 +178,30 @@ msldemc_hdr_sg.samples = len_vs;
 msldemc_hdr_sg.line_offset = line_offset;
 msldemc_hdr_sg.sample_offset = sample_offset;
 
-msldemc_northing = MSLDEMdata.northing(lrnge(1):lrnge(2));
-msldemc_easting  = MSLDEMdata.easting(srnge(1):srnge(2));
+
 
 msldemc_imFOVmask = msldem_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 msldemc_imFOVmask(msldemc_imFOVmask<0) = 0;
 clear msldem_imFOVmask;
 
-
-tic; [safeguard_mask] = safeguard_msldemc_imFOVmask_napmc(...
-    MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_sg,...
-    msldemc_northing,msldemc_easting,...
-    msldemc_imFOVmask,cmmdl_geo); toc;
+switch upper(coordsys)
+    case {'NEE','NORTHEASTELEVATION','NORTHEASTNADIR'}
+        msldemc_northing = MSLDEMdata.northing(lrnge(1):lrnge(2));
+        msldemc_easting  = MSLDEMdata.easting(srnge(1):srnge(2));
+        tic; [safeguard_mask] = safeguard_msldemc_imFOVmask_napmc(...
+            MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_sg,...
+            msldemc_northing,msldemc_easting,...
+            msldemc_imFOVmask,cmmdl_geo); toc;
+    case {'IAU_MARS_SPHERE','IAU_MARS_ELLIPSOID'}
+        msldemc_latitude  = deg2rad(MSLDEMdata.latitude(lrnge(1):lrnge(2)));
+        msldemc_longitude = deg2rad(MSLDEMdata.longitude(srnge(1):srnge(2)));
+        tic; [safeguard_mask] = safeguard_iaumars_msldemc_imFOVmask_napmc(...
+            MSLDEMdata.imgpath,MSLDEMdata.hdr,msldemc_hdr_sg, ...
+            msldemc_latitude,msldemc_longitude,MSLDEMdata.OFFSET, ...
+            msldemc_imFOVmask,cmmdl_geo); toc;
+    otherwise
+        error('Undefined COORDINATE_SYSTEM %s',coordsys);
+end
 
 if any(safeguard_mask,'all')
     fprintf('There seems to be a pixel that potentially in FOV and negatvie apmc');
@@ -150,25 +228,28 @@ len_vs = srnge(2)-srnge(1)+1;
 line_offset = lrnge(1)-1;
 sample_offset = srnge(1)-1;
 
-msldemc_northing = msldemc_northing(lrnge(1):lrnge(2));
-msldemc_easting  = msldemc_easting(srnge(1):srnge(2));
+% msldemc_northing = msldemc_northing(lrnge(1):lrnge(2));
+% msldemc_easting  = msldemc_easting(srnge(1):srnge(2));
 
 msldemc_imFOVhdr = [];
 msldemc_imFOVhdr.lines   = len_vl;
 msldemc_imFOVhdr.samples = len_vs;
 msldemc_imFOVhdr.line_offset   = line_offset + msldemc_hdr_sg.line_offset;
 msldemc_imFOVhdr.sample_offset = sample_offset + msldemc_hdr_sg.sample_offset;
-msldemc_imFOVhdr.y = msldemc_northing;
-msldemc_imFOVhdr.x = msldemc_easting;
+% msldemc_imFOVhdr.y = msldemc_northing;
+% msldemc_imFOVhdr.x = msldemc_easting;
 
 msldemc_imFOVmask = msldemc_imFOVmask(lrnge(1):lrnge(2),srnge(1):srnge(2));
 
 %
 switch mastcamdata_obj.Linearization
     case 1
-        option = struct('COEF_MARGIN',coef_mrgn);
+        option = struct('COEF_MARGIN',coef_mrgn, ...
+            'COORDINATE_SYSTEM',coordsys);
     case 0
-        option = struct('COEF_MARGIN',coef_mrgn,'LRange',lrange,'SRange',srange,'PROC_MODE',proc_mode);
+        option = struct('COEF_MARGIN',coef_mrgn, ...
+            'LRange',lrange,'SRange',srange,'PROC_MODE',proc_mode, ...
+            'COORDINATE_SYSTEM',coordsys);
     otherwise
         error('Linearization %d is not supported',mastcamdata_obj.Linearization);
 end
