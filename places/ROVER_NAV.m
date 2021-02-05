@@ -32,6 +32,8 @@ classdef ROVER_NAV < handle
         version
         MAP
         DEM
+        RADIUS
+        RADIUS_OFFSET
     end
     
     methods
@@ -92,8 +94,12 @@ classdef ROVER_NAV < handle
                             obj.MAP = varargin{i+1};
                         case 'DEM'
                             obj.DEM = varargin{i+1};
+                        case 'RADIUS'
+                            obj.RADIUS = varargin{i+1};
+                        case 'RADIUS_OFFSET'
+                            obj.RADIUS_OFFSET = varargin{i+1};
                         otherwise
-                            error('Parameter: %s', varargin{i});   
+                            error('Parameter: %s', varargin{i});
                     end
                 end
             end
@@ -137,6 +143,10 @@ classdef ROVER_NAV < handle
             obj.DEM_PIXEL_SAMPLE = x-0.5; % from the westernmost longitude
             obj.ELEVATION = elev;
             obj.DEM = MSLDEMdata.basename;
+            if isa(MSLDEMdata,'MSLGaleMosaicRadius_v3')
+                obj.RADIUS = elev;
+                obj.RADIUS_OFFSET = MSLDEMdata.OFFSET;
+            end
         end
         
         function update_MAP(obj,MSLOrthodata)
