@@ -6,13 +6,15 @@ function [mst_cahvor_model] = mastcam_get_cahvor_model(lbl)
 [cmmdl_V] = mastcam_get_cahvor_model_component(lbl,'V');
 [cmmdl_O] = mastcam_get_cahvor_model_component(lbl,'O');
 [cmmdl_R] = mastcam_get_cahvor_model_component(lbl,'R');
+ref_coord_name = lbl.GROUP_GEOMETRIC_CAMERA_MODEL_PARMS.REFERENCE_COORD_SYSTEM_NAME;
 
 if isempty(cmmdl_O) && isempty(cmmdl_R)
     mst_cahvor_model = CAHV_MODEL('C',cmmdl_C,'A',cmmdl_A,'H',cmmdl_H,...
-        'V',cmmdl_V);
+        'V',cmmdl_V,'REFERENCE_COORD_SYSTEM',ref_coord_name);
 else
     mst_cahvor_model = CAHVOR_MODEL('C',cmmdl_C,'A',cmmdl_A,'H',cmmdl_H,...
-        'V',cmmdl_V,'O',cmmdl_O,'R',cmmdl_R);
+        'V',cmmdl_V,'O',cmmdl_O,'R',cmmdl_R,...
+        'REFERENCE_COORD_SYSTEM',ref_coord_name);
 end
 
 end
