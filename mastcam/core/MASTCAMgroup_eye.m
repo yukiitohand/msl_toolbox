@@ -21,9 +21,7 @@ classdef MASTCAMgroup_eye < dynamicprops
         eye         % eye of the group
         PRODUCT_ID  % PRODUCT ID list
         RMC         % ROVER MOTION COUNTER
-        CAM_MDL     % CAMERA MODEL
         ROVER_NAV   % ROVER NAVIGATION FRAME
-        CAM_MDL_GEO % CAMERA MODEL in a geographic coordinate system
         % L_im
         % S_im
         DRXX
@@ -55,7 +53,6 @@ classdef MASTCAMgroup_eye < dynamicprops
             if isempty(obj.PRODUCT_ID)
                 obj.RMC = mst_obj.RMC;
                 obj.ROVER_NAV = mst_obj.ROVER_NAV;
-                obj.CAM_MDL  = mst_obj.CAM_MDL;
                 obj.PRODUCT_ID = {mst_obj.PRODUCT_ID};
                 % obj.L_im = mst_obj.hdr.lines;
                 % obj.S_im = mst_obj.hdr.samples;
@@ -117,9 +114,6 @@ classdef MASTCAMgroup_eye < dynamicprops
             end
             if ~isempty(obj.ROVER_NAV)
                 % delete(obj.ROVER_NAV);
-            end
-            if ~isempty(obj.CAM_MDL)
-                % delete(obj.CAM_MDL);
             end
             delete(obj.DRXX);
             delete(obj.DRCX);
