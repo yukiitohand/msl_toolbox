@@ -30,6 +30,7 @@
  *       intersection.)
  *    1: not evaluated here (FOV with apmc<0)
  *    0: outside FOV
+ *   -1: invalid dem value
  * 
  * 2 is marked for 
  *
@@ -265,7 +266,10 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                     resolz = resol_amax>resol_amin ? (double) resol_amax : (double) resol_amin;
 
                     /* Create rotation matrix for the local tangential
-                     * coordinate systm */
+                     * coordinate systm 
+                     * R = [ e_north, e_easting, e_nadir ] where each of 
+                     * the e_north, e_easting, and e_nadir is column vectors
+                     * */
                     Rlt[0][0] = -sin_dlatl * cos_lonc;
                     Rlt[1][0] = -sin_dlatl * sin_lonc;
                     Rlt[2][0] = cos_dlatl;
@@ -278,7 +282,8 @@ void get_imFOVmask_MSLDEM(char *msldem_imgpath, EnviHeader msldem_hdr,
                     
                     /* conversion of Hd an Vd defined in the IAU_MARS 
                      * planeto centric coordinate system into the local 
-                     * tangential coordinate system */
+                     * tangential coordinate system 
+                     * R' * Hd(:), R' * Vd(:) : inverse rotation*/
                     cam_Hd_lt[0] = cam_Hd[0]*Rlt[0][0] + cam_Hd[1]*Rlt[1][0] + cam_Hd[2]*Rlt[2][0];
                     cam_Hd_lt[1] = cam_Hd[0]*Rlt[0][1] + cam_Hd[1]*Rlt[1][1] + cam_Hd[2]*Rlt[2][1];
                     cam_Hd_lt[2] = cam_Hd[0]*Rlt[0][2] + cam_Hd[1]*Rlt[1][2] + cam_Hd[2]*Rlt[2][2];
