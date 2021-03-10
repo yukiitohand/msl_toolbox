@@ -136,6 +136,18 @@ void createSingleMatrix(float ***ar2d, float **ar_base, size_t N, size_t M)
     }
 }
 
+void createInt16Matrix(int16_T ***ar2d, int16_T **ar_base, size_t N, size_t M)
+{
+    size_t ni;
+    
+    *ar2d = (int16_T**) malloc(sizeof(int16_T*) * N);
+    *ar_base = (int16_T*) malloc(sizeof(int16_T) * N * M);
+    (*ar2d)[0] = &(*ar_base)[0];
+    for(ni=1;ni<N;ni++){
+        (*ar2d)[ni] = (*ar2d)[ni-1] + M;
+    }
+}
+
 /* create a column oriented MxN matrix accessed by ar2d[n][m] */
 void createInt32Matrix(int32_T ***ar2d, int32_T **ar_base, size_t N, size_t M)
 {
