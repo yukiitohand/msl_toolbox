@@ -1,6 +1,21 @@
-
-#ifndef LIB_PROJ_MASTCAMMSLDEM_L2_IAUMARS_H
-#define LIB_PROJ_MASTCAMMSLDEM_L2_IAUMARS_H
+/* =====================================================================
+ * lib_proj_mastcamMSLDEM_IAUMars_L2PBN_DYA_M2.h 
+ * L2  : msldemc will be read from a file not an input.
+ * PBK : PreBinning into bins with the auxiliary size defined by two parameters K_L and K_S
+ * DYA : DYnamic numeric Array (c,l,radius)
+ * M3  : 3x3 matrix inversion object image coordinate.
+ *
+ *
+ * Two functions are included
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DYADYM_M3
+ * below is not implmented yet.
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DYA_M3
+ * 
+ * DYM : DYnamic Masking of the points already labelled as invisible.
+ *
+ * ===================================================================== */
+#ifndef LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBN_DYA_M2_H
+#define LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBN_DYA_M2_H
 
 #include <stdint.h>
 #include "io64.h"
@@ -15,7 +30,7 @@
 #include "mex_create_array.h"
 
 /* main computation routine */
-void mask_obstructed_pts_in_msldemt_using_msldemc_L2_iaumars(
+void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBN_DYA_M2(
         char *msldem_imgpath, EnviHeader msldem_header, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
