@@ -1,6 +1,21 @@
-
-#ifndef LIB_PROJ_MASTCAMMSLDEM_IAUMARS_H
-#define LIB_PROJ_MASTCAMMSLDEM_IAUMARS_H
+/* =====================================================================
+ * lib_proj_mastcamMSLDEM_IAUMars_L1PBN_DAP_M2.h 
+ * L1  : Library type 1: msldemc is given as an matrix array.
+ * PBN : PreBinning into bins with the 1x1 pixel size
+ * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
+ * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
+ *
+ *
+ * Two functions are included
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAP_M3
+ * below is not implmented yet.
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M3
+ * 
+ * DYM : DYnamic Masking of the points already labelled as invisible.
+ *
+ * ===================================================================== */
+#ifndef LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L1PBN_DAP_M2_H
+#define LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L1PBN_DAP_M2_H
 
 #include <stdint.h>
 #include "io64.h"
@@ -15,7 +30,7 @@
 #include "mex_create_array.h"
 
 /* main computation routine */
-void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars(
+void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L1PBN_DAP_M2(
         double **msldemc_img,
         int32_T msldemc_samples, int32_T msldemc_lines,
         double *msldemc_latitude, double *msldemc_longitude, int8_T **msldemc_imFOVmask,

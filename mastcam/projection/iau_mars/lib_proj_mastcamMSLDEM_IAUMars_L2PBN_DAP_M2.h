@@ -1,9 +1,9 @@
 /* =====================================================================
  * lib_proj_mastcamMSLDEM_IAUMars_L2PBN_DAP_M2.h 
  * L2  : msldemc will be read from a file not an input.
- * PBK : PreBinning into bins with the auxiliary size defined by two parameters K_L and K_S
+ * PBN : PreBinning into bins with the 1x1 pixel size
  * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
- * M3  : 3x3 matrix inversion object image coordinate.
+ * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
  *
  *
  * Two functions are included
