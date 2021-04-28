@@ -30,7 +30,7 @@
 #include "mex_create_array.h"
 
 /* main computation routine */
-void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBN_DAP_M2(
+void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAP_M2(
         char *msldem_imgpath, EnviHeader msldem_header, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
