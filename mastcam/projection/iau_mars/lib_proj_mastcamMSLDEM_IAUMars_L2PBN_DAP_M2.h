@@ -296,10 +296,15 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBN_DAP_M2(
                         x_max = fmax(fmax(ppv1x,ppv2x),ppv3x);
                         y_max = fmax(fmax(ppv1y,ppv2y),ppv3y);
                         
-                        x_min_int = (int32_T) floor(x_min);
-                        y_min_int = (int32_T) floor(y_min);
-                        x_max_int = (int32_T) ceil(x_max);
-                        y_max_int = (int32_T) ceil(y_max);
+                        //x_min_int = (int32_T) floor(x_min);
+                        //y_min_int = (int32_T) floor(y_min);
+                        //x_max_int = (int32_T) ceil(x_max);
+                        //y_max_int = (int32_T) ceil(y_max);
+                        
+                        x_min_int = (int32_T) floor(x_min+0.5);
+                        y_min_int = (int32_T) floor(y_min+0.5);
+                        x_max_int = (int32_T) floor(x_max+1.5);
+                        y_max_int = (int32_T) floor(y_max+1.5);
                         
                         if(x_min_int<0){
                             x_min_int=0;   

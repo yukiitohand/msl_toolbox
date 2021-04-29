@@ -1,6 +1,9 @@
 /* =====================================================================
- * iaumars_get_msldemtUFOVmask_ctr_wmsldemc_L2_mex.c
- * Evaluate any pixels in MSLDEM image whether or not they exist in the 
+ * iaumars_get_msldemtUFOVmask_ctr_L2PBN_DAP_M2_mex.c
+ * L2  : msldemc will be read from a file not an input.
+ * PBN : PreBinning into bins with the 1x1 pixel size
+ * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
+ * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
  * 
  * INPUTS:
  * 0 msldem_imgpath        char* path to the image
@@ -36,9 +39,10 @@
 #include "envi.h"
 #include "mex_create_array.h"
 #include "cahvor.h"
-#include "lib_proj_mastcamMSLDEM_L2_IAUMars.h"
+#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBN_DAP_M2.h"
 
-void bin_msldemt_xyz_wAHVint_L2_iaumars_ctr(int32_T S_im, int32_T L_im, CAHV_MODEL cahv_mdl,
+
+void bin_msldemt_ctr_iaumars_L2PBN_DAP(int32_T S_im, int32_T L_im, CAHV_MODEL cahv_mdl,
         char *msldem_imgpath, EnviHeader msldem_hdr, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
@@ -126,8 +130,8 @@ void bin_msldemt_xyz_wAHVint_L2_iaumars_ctr(int32_T S_im, int32_T L_im, CAHV_MOD
                 apmc =  pmcx*cam_A[0] + pmcy*cam_A[1] + pmcz*cam_A[2];
                 ppvx = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
                 ppvy = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
-                xi = (int32_T) floor(ppvx);
-                yi = (int32_T) floor(ppvy);
+                xi = (int32_T) floor(ppvx+0.5);
+                yi = (int32_T) floor(ppvy+0.5);
                 //xi = xi<0?0:xi;
                 //xi = xi>S_imm1?:xi;
                 if(xi<0)
@@ -210,8 +214,8 @@ void bin_msldemt_xyz_wAHVint_L2_iaumars_ctr(int32_T S_im, int32_T L_im, CAHV_MOD
                 
                 ppvx = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
                 ppvy = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
-                xi = (int32_T) floor(ppvx);
-                yi = (int32_T) floor(ppvy);
+                xi = (int32_T) floor(ppvx+0.5);
+                yi = (int32_T) floor(ppvy+0.5);
                 if(xi<0)
                     xi=0;
                 else if(xi>S_imm1)
@@ -296,12 +300,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* INPUT 0 msldem_imgpath */
     msldem_imgpath = mxArrayToString(prhs[0]);
     
-    /* INPUT 1 msldem_header */
+    /* INPUT 1 msldem_header and 2 radius offset */
     msldem_header = mxGetEnviHeader(prhs[1]);
     
     mslrad_offset     = mxGetScalar(prhs[2]);
     
-    /* INPUT 2 msldemc_sheader*/
+    /* INPUT 3 msldemc_sheader*/
     msldemc_imxy_sample_offset = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"sample_offset"));
     msldemc_imxy_line_offset = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"line_offset"));
     msldemc_samples = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"samples"));
@@ -310,19 +314,19 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //L_demc = mxGetM(prhs[0]);
     //S_demc = mxGetN(prhs[0]);
     
-    /* INPUT 1/2 msldem northing easting */
+    /* INPUT 4/5 msldem northing easting */
     msldemc_latitude  = mxGetDoubles(prhs[4]);
     msldemc_longitude = mxGetDoubles(prhs[5]);
     
     
-    /* INPUT 3 msldemc imFOV */
+    /* INPUT 6 msldemc imFOV */
     msldemc_imFOVmask = set_mxInt8Matrix(prhs[6]);
     
-    /* INPUT 4/5 image S_im, L_im */
+    /* INPUT 7/8 image S_im, L_im */
     S_im = (mwSize) mxGetScalar(prhs[7]);
     L_im = (mwSize) mxGetScalar(prhs[8]);
     
-    /* INPUT 6 CAHV model */
+    /* INPUT 9 CAHV model */
     cahv_mdl = mxGet_CAHV_MODEL(prhs[9]);
     
     
@@ -354,7 +358,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     createDoublePMatrix(&bin_imy, &bin_imy_base, (size_t) S_im, (size_t) L_im);
     createDoublePMatrix(&bin_rad, &bin_rad_base, (size_t) S_im, (size_t) L_im);
     
-    bin_msldemt_xyz_wAHVint_L2_iaumars_ctr((int32_T) S_im, (int32_T) L_im, cahv_mdl,
+    bin_msldemt_ctr_iaumars_L2PBN_DAP((int32_T) S_im, (int32_T) L_im, cahv_mdl,
             msldem_imgpath, msldem_header, mslrad_offset,
             msldemc_imxy_sample_offset, msldemc_imxy_line_offset,
             msldemc_samples, msldemc_lines, 
@@ -365,7 +369,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
      * ----------------------------------------------------------------- */    
-    mask_obstructed_pts_in_msldemt_using_msldemc_L2_iaumars(
+    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBN_DAP_M2(
             msldem_imgpath, msldem_header, mslrad_offset,
         (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,

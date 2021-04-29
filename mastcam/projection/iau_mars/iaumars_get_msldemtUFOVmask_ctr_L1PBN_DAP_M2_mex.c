@@ -1,6 +1,9 @@
 /* =====================================================================
- * iaumars_get_msldemtUFOVmask_ctr_wmsldemc_mex.c
- * Evaluate any pixels in MSLDEM image whether or not they exist in the 
+ * iaumars_get_msldemtUFOVmask_ctr_L1PBN_DAP_M2_mex.c
+ * L1  : Library type 1: msldemc is given as an matrix array.
+ * PBN : PreBinning into bins with the 1x1 pixel size
+ * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
+ * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
  * 
  * INPUTS:
  * 0 msldem_img            char* path to the image
@@ -33,9 +36,9 @@
 #include "envi.h"
 #include "mex_create_array.h"
 #include "cahvor.h"
-#include "lib_proj_mastcamMSLDEM_IAUMars.h"
+#include "lib_proj_mastcamMSLDEM_IAUMars_L1PBN_DAP_M2.h"
 
-void bin_msldemt_xyz_wAHVint_iaumars_ctr(int32_T S_im, int32_T L_im, CAHV_MODEL cahv_mdl,
+void bin_msldemt_ctr_iaumars_L1PBN_DAP(int32_T S_im, int32_T L_im, CAHV_MODEL cahv_mdl,
         double **msldemc_img,
         int32_T msldemc_samples, int32_T msldemc_lines,
         double *msldemc_latitude, double *msldemc_longitude, 
@@ -294,7 +297,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     createDoublePMatrix(&bin_imy, &bin_imy_base, (size_t) S_im, (size_t) L_im);
     createDoublePMatrix(&bin_rad, &bin_rad_base, (size_t) S_im, (size_t) L_im);
     
-    bin_msldemt_xyz_wAHVint_iaumars_ctr((int32_T) S_im, (int32_T) L_im, cahv_mdl,
+    bin_msldemt_ctr_iaumars_L1PBN_DAP((int32_T) S_im, (int32_T) L_im, cahv_mdl,
             msldemc_img, msldemc_samples, msldemc_lines, 
             msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
             bin_count_im, bin_im_c, bin_im_l, bin_imx, bin_imy, bin_rad,
@@ -303,7 +306,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
      * ----------------------------------------------------------------- */    
-    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars(
+    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L1PBN_DAP_M2(
             msldemc_img,
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,
         msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,

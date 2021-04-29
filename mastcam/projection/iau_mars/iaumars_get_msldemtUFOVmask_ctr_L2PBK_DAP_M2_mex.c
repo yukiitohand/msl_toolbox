@@ -1,6 +1,9 @@
 /* =====================================================================
- * iaumars_get_msldemtUFOVmask_ctr_wmsldemc_L2_mex.c
- * Evaluate any pixels in MSLDEM image whether or not they exist in the 
+ * iaumars_get_msldemtUFOVmask_ctr_L2PBK_DAP_M2_mex.c
+ * L2  : msldemc will be read from a file not an input.
+ * PBK : PreBinning into bins with the auxiliary size defined by two parameters K_L and K_S
+ * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
+ * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
  * 
  * INPUTS:
  * 0 msldem_imgpath        char* path to the image
@@ -38,9 +41,9 @@
 #include "envi.h"
 #include "mex_create_array.h"
 #include "cahvor.h"
-#include "lib_proj_mastcamMSLDEM_L2K_IAUMars.h"
+#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAP_M2.h"
 
-void bin_msldemt_xyz_wAHVint_L2K_iaumars_ctr(double S_im, double L_im, CAHV_MODEL cahv_mdl,
+void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv_mdl,
         char *msldem_imgpath, EnviHeader msldem_hdr, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
@@ -368,7 +371,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     createDoublePMatrix(&bin_imy, &bin_imy_base, (size_t) binS, (size_t) binL);
     createDoublePMatrix(&bin_rad, &bin_rad_base, (size_t) binS, (size_t) binL);
     
-    bin_msldemt_xyz_wAHVint_L2K_iaumars_ctr(S_im, L_im, cahv_mdl,
+    bin_msldemt_ctr_iaumars_L2PBK_DAP(S_im, L_im, cahv_mdl,
             msldem_imgpath, msldem_header, mslrad_offset,
             msldemc_imxy_sample_offset, msldemc_imxy_line_offset,
             msldemc_samples, msldemc_lines, 
@@ -380,7 +383,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
      * ----------------------------------------------------------------- */    
-    mask_obstructed_pts_in_msldemt_using_msldemc_L2K_iaumars(
+    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
             msldem_imgpath, msldem_header, mslrad_offset,
         (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,
