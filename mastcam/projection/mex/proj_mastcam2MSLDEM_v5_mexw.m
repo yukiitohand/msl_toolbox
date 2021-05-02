@@ -128,6 +128,7 @@ switch upper(coordsys)
                         S_im,L_im,...6,7
                         cmmdl_geo,...8
                         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
+                mastcam_range = sqrt(im_range);
                 % comment out below is for an obsolete function. superseded by the
                 % function above because it is faster and memory efficient.
                 % tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy,msldem_refs,im_range,...
@@ -160,7 +161,7 @@ switch upper(coordsys)
                         S_im,L_im,...6,7
                         cmmdl_geo,...8
                         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 9, 10, 11
-
+                mastcam_range = sqrt(im_range);
 
             otherwise
                 error('Linearization %d is not supported',mastcamdata_obj.Linearization);
@@ -184,11 +185,12 @@ switch upper(coordsys)
                         S_im,L_im,                  ...7,8
                         cmmdl_geo,                  ...9
                         PmC(:,:,1),PmC(:,:,2),PmC(:,:,3)); toc; % 10,11,12
+                mastcam_range = sqrt(im_range);
             case 0
                 tic; [im_north,im_east,im_elev,msldem_refx,msldem_refy, ...
-                    msldem_refs,im_range,im_nnx,im_nny,im_emi, ...
+                    msldem_refs,mastcam_range,im_nnx,im_nny,im_emi, ...
                     im_pnx,im_pny,im_pnz,im_pc] = ...
-                    cahvor_iaumars_proj_mastcam2MSLDEM_v5_mex(...
+                    cahvor_iaumars_proj_mastcam2MSLDEM_v6_mex(...
                         MSLDEMdata.imgpath,         ...0
                         MSLDEMdata.hdr,             ...1
                         MSTprj.msldemc_imFOVhdr,    ...2
@@ -226,7 +228,7 @@ img_mask_ctrnn = int8(img_mask_ctrnn);
 %% Fill propoerties of MASTCAMCameraProjectionMSLDEM object.
 mastcam_NEE = cat(3,im_north,im_east,im_elev);
 mastcam_msldemc_ref = cat(3,msldem_refx,msldem_refy,msldem_refs); % original, index start from 0.
-mastcam_range = sqrt(im_range);
+% mastcam_range = sqrt(im_range);
 mastcam_msldemc_nn = cat(3,im_nnx+1,im_nny+1); % index start from 1.
 msldemc_imFOVmask_ctrnn = img_mask_ctrnn;
 mastcam_emi = acosd(im_emi);

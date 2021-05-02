@@ -1,9 +1,9 @@
 /* =====================================================================
- * iaumars_get_msldemtUFOVmask_ctr_L2PBK_DAP_M2_mex.c
+ * iaumars_get_msldemtUFOVmask_ctr_L2PBK_LLA_M3_mex.c
  * L2  : msldemc will be read from a file not an input.
  * PBK : Prior Binning into bins with the auxiliary size defined by two parameters K_L and K_S
- * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
- * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
+ * LLA : Linked List with shifted areo-coordinate (c,l,pmcx,pmcy,pmcz).
+ * M3  : 3x3 matrix inversion object image coordinate.
  * 
  * INPUTS:
  * 0 msldem_imgpath        char* path to the image
@@ -41,19 +41,21 @@
 #include "envi.h"
 #include "mex_create_array.h"
 #include "cahvor.h"
-#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAP_M2.h"
+#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBK_LLA_M3.h"
 
-void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv_mdl,
+#include <time.h>
+
+
+
+void bin_msldemt_ctr_iaumars_L2PBK_LLA(double S_im, double L_im, CAHV_MODEL cahv_mdl,
         char *msldem_imgpath, EnviHeader msldem_hdr, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
         double *msldemc_latitude, double *msldemc_longitude, 
         int8_T **msldemc_imFOVmask, 
-        int32_T **bin_count_im,int32_T ***bin_im_c, int32_T ***bin_im_l,
-        double ***bin_imx, double ***bin_imy,double ***bin_rad,
         double K_L, double K_S,
-        int32_T *count_napmc, int32_T **c_napmc, int32_T **l_napmc,
-        double **rad_napmc)
+        struct MSLDEMmask_LinkedList_wpmc ***ll_papmc,
+        struct MSLDEMmask_LinkedList_wpmc **ll_napmc)
 {
     int32_T xi,yi,c,l;
     int32_t binL,binS;
@@ -74,6 +76,10 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
     double radius_tmp;
     double cos_latl, sin_latl;
     double x_iaumars, y_iaumars, z_iaumars;
+    struct MSLDEMmask_LinkedList_wpmc *ll_papmc_next;
+    struct MSLDEMmask_LinkedList_wpmc *ll_napmc_next;
+    
+    ll_napmc_next = (*ll_napmc);
     
     // S_imm1 = S_im - 1;
     // L_imm1 = L_im - 1;
@@ -83,7 +89,6 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
     
     cam_C = cahv_mdl.C; cam_A = cahv_mdl.A; cam_H = cahv_mdl.H; cam_V = cahv_mdl.V;
     
-    *count_napmc = 0;
     
     cos_lon = (double*) malloc(sizeof(double) * (size_t) msldemc_samples);
     sin_lon = (double*) malloc(sizeof(double) * (size_t) msldemc_samples);
@@ -91,13 +96,7 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
         cos_lon[c] = cos(msldemc_longitude[c]);
         sin_lon[c] = sin(msldemc_longitude[c]);
     }
-    
-    /* Initialize the counting matrix */
-    for(xi=0;xi<binS;xi++){
-        for(yi=0;yi<binL;yi++){
-            bin_count_im[xi][yi] = 0;
-        }
-    }
+
     
     fid = fopen(msldem_imgpath,"rb");
     /* skip lines */
@@ -149,102 +148,53 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
                     yi=0;
                 else if(yi>binLm1)
                     yi = binLm1;
+                
+                if(ll_papmc[xi][yi]!=NULL){
+                    ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList_wpmc));
+                    ll_papmc_next->c = c;
+                    ll_papmc_next->l = l;
+                    ll_papmc_next->pmcx = pmcx;
+                    ll_papmc_next->pmcy = pmcy;
+                    ll_papmc_next->pmcz = pmcz;
+                    ll_papmc_next->next = ll_papmc[xi][yi];
+                    ll_papmc[xi][yi]->prev = ll_papmc_next;
+                    ll_papmc[xi][yi] = ll_papmc_next;
+                    ll_papmc_next->prev = NULL;
+                } else {
+                    ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList_wpmc));
+                    ll_papmc_next->c = c;
+                    ll_papmc_next->l = l;
+                    ll_papmc_next->pmcx = pmcx;
+                    ll_papmc_next->pmcy = pmcy;
+                    ll_papmc_next->pmcz = pmcz;
+                    ll_papmc_next->next = NULL;
+                    ll_papmc[xi][yi] = ll_papmc_next;
+                    ll_papmc_next->prev = NULL;
+                }
 
-                ++bin_count_im[xi][yi];
             } else if(msldemc_imFOVmask[c][l]==1) {
                 /*  */
-                (*count_napmc)++;
-            }
-        }
-    }
-    
-    for(xi=0;xi<binS;xi++){
-        for(yi=0;yi<binL;yi++){
-            if(bin_count_im[xi][yi]>0){
-                bin_im_c[xi][yi] = (int32_T*) malloc(bin_count_im[xi][yi]*sizeof(int32_T));
-                bin_im_l[xi][yi] = (int32_T*) malloc(bin_count_im[xi][yi]*sizeof(int32_T));
-                bin_imx[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
-                bin_imy[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
-                bin_rad[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
-            } else {
-                bin_im_c[xi][yi] = NULL;
-                bin_im_l[xi][yi] = NULL;
-                bin_imx[xi][yi] = NULL;
-                bin_imy[xi][yi] = NULL;
-                bin_rad[xi][yi] = NULL;
-            }
-        }
-    }
-    
-    /* */
-    if(*count_napmc>0){
-        *c_napmc = (int32_T*) malloc(sizeof(int32_T) * (size_t) *count_napmc);
-        *l_napmc = (int32_T*) malloc(sizeof(int32_T) * (size_t) *count_napmc);
-        *rad_napmc = (double*) malloc(sizeof(double) * (size_t) *count_napmc);
-    } else {
-        *c_napmc = NULL;
-        *l_napmc = NULL;
-        *rad_napmc = NULL;
-    }
-    *count_napmc = 0;
-    
-    for(xi=0;xi<binS;xi++){
-        for(yi=0;yi<binL;yi++){
-            bin_count_im[xi][yi] = 0;
-        }
-    }
-    
-    fseek(fid,skip_pri,SEEK_SET);
-    
-    for(l=0;l<msldemc_lines;l++){
-        fseek(fid,skip_l,SEEK_CUR);
-        fread(elevl,sz,msldemc_samples,fid);
-        fseek(fid,skip_r,SEEK_CUR);
-        for(c=0;c<msldemc_samples;c++){
-            if(elevl[c]<data_ignore_value_float)
-                elevl[c] = NAN;
-        }
-        cos_latl   = cos(msldemc_latitude[l]);
-        sin_latl   = sin(msldemc_latitude[l]);
-        for(c=0;c<msldemc_samples;c++){
-            if(msldemc_imFOVmask[c][l]>1){
-                radius_tmp = (double) elevl[c] + mslrad_offset;
-                x_iaumars  = radius_tmp * cos_latl * cos_lon[c];
-                y_iaumars  = radius_tmp * cos_latl * sin_lon[c];
-                z_iaumars  = radius_tmp * sin_latl;
-                pmcx = x_iaumars - cam_C[0];
-                pmcy = y_iaumars - cam_C[1];
-                pmcz = z_iaumars - cam_C[2];
-                
-                apmc   = pmcx*cam_A[0] + pmcy*cam_A[1] + pmcz*cam_A[2];
-                
-                ppvx = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
-                ppvy = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
-                xi = (int32_T) floor(K_S*(ppvx+0.5));
-                yi = (int32_T) floor(K_L*(ppvy+0.5));
-                if(xi<0)
-                    xi=0;
-                else if(xi>binSm1)
-                    xi = binSm1;
-
-                if(yi<0)
-                    yi=0;
-                else if(yi>binLm1)
-                    yi = binLm1;
-
-                bin_im_c[xi][yi][bin_count_im[xi][yi]] = c;
-                bin_im_l[xi][yi][bin_count_im[xi][yi]] = l;
-                bin_imx[xi][yi][bin_count_im[xi][yi]]  = ppvx;
-                bin_imy[xi][yi][bin_count_im[xi][yi]]  = ppvy;
-                bin_rad[xi][yi][bin_count_im[xi][yi]]  = radius_tmp;
-                ++bin_count_im[xi][yi];
-
-            } else if(msldemc_imFOVmask[c][l]==1){
-                radius_tmp = (double) elevl[c] + mslrad_offset;
-                (*c_napmc)[*count_napmc] = c;
-                (*l_napmc)[*count_napmc] = l;
-                (*rad_napmc)[*count_napmc] = radius_tmp;
-                (*count_napmc)++;
+                if(ll_napmc_next!=NULL){
+                    ll_napmc_next->next = malloc(sizeof(struct MSLDEMmask_LinkedList_wpmc));
+                    ll_napmc_next->next->prev = ll_napmc_next;
+                    ll_napmc_next = ll_napmc_next->next;
+                    ll_napmc_next->c = c;
+                    ll_napmc_next->l = l;
+                    ll_napmc_next->pmcx = pmcx;
+                    ll_napmc_next->pmcy = pmcy;
+                    ll_napmc_next->pmcz = pmcz;
+                    ll_napmc_next->next = NULL;
+                } else {
+                    (*ll_napmc) = malloc(sizeof(struct MSLDEMmask_LinkedList_wpmc));
+                    ll_napmc_next = (*ll_napmc);
+                    ll_napmc_next->c = c;
+                    ll_napmc_next->l = l;
+                    ll_napmc_next->pmcx = pmcx;
+                    ll_napmc_next->pmcy = pmcy;
+                    ll_napmc_next->pmcz = pmcz;
+                    ll_napmc_next->next = NULL;
+                    ll_napmc_next->prev = NULL;
+                }
             }
         }
     }
@@ -273,18 +223,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     mwIndex si,li;
     
-    int32_T **bin_count_im, *bin_count_im_base;
-    int32_T ***bin_im_c, **bin_im_c_base;
-    int32_T ***bin_im_l, **bin_im_l_base;
-    double ***bin_imx, **bin_imx_base;
-    double ***bin_imy, **bin_imy_base;
-    double ***bin_rad, **bin_rad_base;
-    int32_T *c_napmc, *l_napmc;
-    int32_T count_napmc;
-    double *rad_napmc;
+    struct MSLDEMmask_LinkedList_wpmc ***ll_papmc_bin, **ll_papmc_bin_base;
+    struct MSLDEMmask_LinkedList_wpmc *ll_napmc;
+    struct MSLDEMmask_LinkedList_wpmc *ll_tmp;
+    
     
     double K_L,K_S;
     mwSize binL,binS;
+    
+    clock_t strt_time, end_time;
+    double cpu_time_used;
 
     /* -----------------------------------------------------------------
      * CHECK PROPER NUMBER OF INPUTS AND OUTPUTS
@@ -363,74 +311,64 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* -----------------------------------------------------------------
      * binning the image
      * ----------------------------------------------------------------- */
+    ll_napmc = NULL;
+    ll_tmp   = NULL;
+    strt_time = clock();
     binL = (mwSize) (K_L * L_im); binS = (mwSize) (K_S * S_im);
-    createInt32Matrix(&bin_count_im,&bin_count_im_base,(size_t) binS, (size_t) binL);
-    createInt32PMatrix(&bin_im_c, &bin_im_c_base, (size_t) binS, (size_t) binL);
-    createInt32PMatrix(&bin_im_l, &bin_im_l_base, (size_t) binS, (size_t) binL);
-    createDoublePMatrix(&bin_imx, &bin_imx_base, (size_t) binS, (size_t) binL);
-    createDoublePMatrix(&bin_imy, &bin_imy_base, (size_t) binS, (size_t) binL);
-    createDoublePMatrix(&bin_rad, &bin_rad_base, (size_t) binS, (size_t) binL);
+    createMSLDEMmask_LLMatrix(&ll_papmc_bin, &ll_papmc_bin_base, (size_t) binS, (size_t) binL);
+    for(si=0;si<binS;si++){
+        for(li=0;li<binL;li++){
+            ll_papmc_bin[si][li] = NULL;
+        }
+    }
     
-    bin_msldemt_ctr_iaumars_L2PBK_DAP(S_im, L_im, cahv_mdl,
+    
+    bin_msldemt_ctr_iaumars_L2PBK_LLA(S_im, L_im, cahv_mdl,
             msldem_imgpath, msldem_header, mslrad_offset,
             msldemc_imxy_sample_offset, msldemc_imxy_line_offset,
             msldemc_samples, msldemc_lines, 
             msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
-            bin_count_im, bin_im_c, bin_im_l, bin_imx, bin_imy, bin_rad,
             K_L,K_S,
-            &count_napmc,&c_napmc,&l_napmc,&rad_napmc);
-    
+            ll_papmc_bin, &ll_napmc);
+    end_time = clock();
+    cpu_time_used = ((double) (end_time - strt_time)) / CLOCKS_PER_SEC;
+    printf("Preprocessing took %f [sec].\n",cpu_time_used);
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
-     * ----------------------------------------------------------------- */    
-    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
+     * ----------------------------------------------------------------- */
+    strt_time = clock();
+    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_LLADYU_M3(
             msldem_imgpath, msldem_header, mslrad_offset,
         (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,
         msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
         (int32_T) msldemc_samples, (int32_T) msldemc_lines,
         msldemc_latitude, msldemc_longitude, msldemt_imUFOVmask,
-        bin_count_im, bin_im_c, bin_im_l,
-        bin_imx, bin_imy, bin_rad,
         K_L,K_S,
-        count_napmc, c_napmc, l_napmc, rad_napmc,
+        ll_papmc_bin, ll_napmc,
         S_im, L_im, cahv_mdl);
         
+    end_time = clock();
+    cpu_time_used = ((double) (end_time - strt_time)) / CLOCKS_PER_SEC;
+    printf("Main operation took %f [sec].\n",cpu_time_used);
     
     /* Freeing memories */
     for(si=0;si<binS;si++){
         for(li=0;li<binL;li++){
-            if(bin_count_im[si][li]>0){
-                free(bin_im_c[si][li]);
-                free(bin_im_l[si][li]);
-                free(bin_imx[si][li]);
-                free(bin_imy[si][li]);
-                free(bin_rad[si][li]);
+            while(ll_papmc_bin[si][li] != NULL){
+                ll_tmp   = ll_papmc_bin[si][li];
+                ll_papmc_bin[si][li] = ll_papmc_bin[si][li]->next;
+                free(ll_tmp);
             }
         }
     }
+    free(ll_papmc_bin);
+    free(ll_papmc_bin_base);
     
-    free(bin_im_c);
-    free(bin_im_l);
-    free(bin_im_c_base);
-    free(bin_im_l_base);
-    
-    free(bin_imx);
-    free(bin_imy);
-    free(bin_imx_base);
-    free(bin_imy_base);
-    free(bin_rad);
-    free(bin_rad_base);
-    
-    
-    // mxFree(bin_count_im);
-    free(bin_count_im);
-    free(bin_count_im_base);
-    
-    if(count_napmc>0){
-        free(c_napmc);
-        free(l_napmc);
-        free(rad_napmc);
+    while(ll_napmc != NULL){
+        ll_tmp   = ll_napmc;
+        ll_napmc = ll_napmc->next;
+        free(ll_tmp);
     }
     
     /* free memories */

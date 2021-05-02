@@ -1,7 +1,7 @@
 /* =====================================================================
  * lib_proj_mastcamMSLDEM_IAUMars_L1PBN_DAP_M2.h 
  * L1  : Library type 1: msldemc is given as an matrix array.
- * PBN : PreBinning into bins with the 1x1 pixel size
+ * PBN : Prior Binning into bins with the 1x1 pixel size
  * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
  * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
  *

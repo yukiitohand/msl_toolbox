@@ -1,9 +1,9 @@
 /* =====================================================================
- * iaumars_get_msldemtUFOVmask_ctr_L2PBK_DAP_M2_mex.c
+ * iaumars_get_msldemtUFOVmask_ctr_L2PBK_DAR_M3_mex.c
  * L2  : msldemc will be read from a file not an input.
  * PBK : Prior Binning into bins with the auxiliary size defined by two parameters K_L and K_S
- * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
- * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
+ * DAR : Dynamic numeric ARray (c,l,radius)
+ * M3  : 3x3 matrix inversion object image coordinate.
  * 
  * INPUTS:
  * 0 msldem_imgpath        char* path to the image
@@ -18,6 +18,7 @@
  * 9 cahv_mdl              CAHV_MODEL
  * 10 K_L                  double reciprocal of the length of the bin in the image line direction.
  * 11 K_S                  double reciprocal of the length of the bin in the image sample direction.
+ * 12 dyu                  (int8_t) dynamic array masking flag
  *
  * 
  * 
@@ -41,16 +42,16 @@
 #include "envi.h"
 #include "mex_create_array.h"
 #include "cahvor.h"
-#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAP_M2.h"
+#include "lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAR_M3.h"
 
-void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv_mdl,
+void bin_msldemt_ctr_iaumars_L2PBK_DAR(double S_im, double L_im, CAHV_MODEL cahv_mdl,
         char *msldem_imgpath, EnviHeader msldem_hdr, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
         double *msldemc_latitude, double *msldemc_longitude, 
         int8_T **msldemc_imFOVmask, 
         int32_T **bin_count_im,int32_T ***bin_im_c, int32_T ***bin_im_l,
-        double ***bin_imx, double ***bin_imy,double ***bin_rad,
+        double ***bin_rad,
         double K_L, double K_S,
         int32_T *count_napmc, int32_T **c_napmc, int32_T **l_napmc,
         double **rad_napmc)
@@ -163,14 +164,10 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
             if(bin_count_im[xi][yi]>0){
                 bin_im_c[xi][yi] = (int32_T*) malloc(bin_count_im[xi][yi]*sizeof(int32_T));
                 bin_im_l[xi][yi] = (int32_T*) malloc(bin_count_im[xi][yi]*sizeof(int32_T));
-                bin_imx[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
-                bin_imy[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
                 bin_rad[xi][yi] = (double*) malloc(bin_count_im[xi][yi]*sizeof(double));
             } else {
                 bin_im_c[xi][yi] = NULL;
                 bin_im_l[xi][yi] = NULL;
-                bin_imx[xi][yi] = NULL;
-                bin_imy[xi][yi] = NULL;
                 bin_rad[xi][yi] = NULL;
             }
         }
@@ -234,8 +231,6 @@ void bin_msldemt_ctr_iaumars_L2PBK_DAP(double S_im, double L_im, CAHV_MODEL cahv
 
                 bin_im_c[xi][yi][bin_count_im[xi][yi]] = c;
                 bin_im_l[xi][yi][bin_count_im[xi][yi]] = l;
-                bin_imx[xi][yi][bin_count_im[xi][yi]]  = ppvx;
-                bin_imy[xi][yi][bin_count_im[xi][yi]]  = ppvy;
                 bin_rad[xi][yi][bin_count_im[xi][yi]]  = radius_tmp;
                 ++bin_count_im[xi][yi];
 
@@ -268,6 +263,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     CAHV_MODEL cahv_mdl;
     int8_T **msldemc_imFOVmask;
     double S_im,L_im;
+    int8_t dyu;
     
     int8_T **msldemt_imUFOVmask;
     
@@ -276,8 +272,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int32_T **bin_count_im, *bin_count_im_base;
     int32_T ***bin_im_c, **bin_im_c_base;
     int32_T ***bin_im_l, **bin_im_l_base;
-    double ***bin_imx, **bin_imx_base;
-    double ***bin_imy, **bin_imy_base;
     double ***bin_rad, **bin_rad_base;
     int32_T *c_napmc, *l_napmc;
     int32_T count_napmc;
@@ -309,12 +303,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* INPUT 0 msldem_imgpath */
     msldem_imgpath = mxArrayToString(prhs[0]);
     
-    /* INPUT 1 msldem_header */
+    /* INPUT 1 msldem_header and 2 radius offset */
     msldem_header = mxGetEnviHeader(prhs[1]);
     
     mslrad_offset     = mxGetScalar(prhs[2]);
     
-    /* INPUT 2 msldemc_sheader*/
+    /* INPUT 3 msldemc_sheader*/
     msldemc_imxy_sample_offset = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"sample_offset"));
     msldemc_imxy_line_offset = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"line_offset"));
     msldemc_samples = (mwSize) mxGetScalar(mxGetField(prhs[3],0,"samples"));
@@ -323,24 +317,27 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //L_demc = mxGetM(prhs[0]);
     //S_demc = mxGetN(prhs[0]);
     
-    /* INPUT 1/2 msldem northing easting */
+    /* INPUT 4/5 msldem northing easting */
     msldemc_latitude  = mxGetDoubles(prhs[4]);
     msldemc_longitude = mxGetDoubles(prhs[5]);
     
     
-    /* INPUT 3 msldemc imFOV */
+    /* INPUT 6 msldemc imFOV */
     msldemc_imFOVmask = set_mxInt8Matrix(prhs[6]);
     
-    /* INPUT 4/5 image S_im, L_im */
+    /* INPUT 7/8 image S_im, L_im */
     S_im = mxGetScalar(prhs[7]);
     L_im = mxGetScalar(prhs[8]);
     
-    /* INPUT 6 CAHV model */
+    /* INPUT 9 CAHV model */
     cahv_mdl = mxGet_CAHV_MODEL(prhs[9]);
     
+    /* INPUT 10/11 bin size parameters */
     K_L = mxGetScalar(prhs[10]);
     K_S = mxGetScalar(prhs[11]);
     
+    /* INPUT 12 dynamic masking flag */
+    dyu = (int8_t) mxGetScalar(prhs[12]);
     
     /* OUTPUT 0 msldemc imFOV */
     plhs[0] = mxCreateNumericMatrix(msldemc_lines,msldemc_samples,mxINT8_CLASS,mxREAL);
@@ -367,34 +364,47 @@ void mexFunction( int nlhs, mxArray *plhs[],
     createInt32Matrix(&bin_count_im,&bin_count_im_base,(size_t) binS, (size_t) binL);
     createInt32PMatrix(&bin_im_c, &bin_im_c_base, (size_t) binS, (size_t) binL);
     createInt32PMatrix(&bin_im_l, &bin_im_l_base, (size_t) binS, (size_t) binL);
-    createDoublePMatrix(&bin_imx, &bin_imx_base, (size_t) binS, (size_t) binL);
-    createDoublePMatrix(&bin_imy, &bin_imy_base, (size_t) binS, (size_t) binL);
     createDoublePMatrix(&bin_rad, &bin_rad_base, (size_t) binS, (size_t) binL);
     
-    bin_msldemt_ctr_iaumars_L2PBK_DAP(S_im, L_im, cahv_mdl,
+    bin_msldemt_ctr_iaumars_L2PBK_DAR(S_im, L_im, cahv_mdl,
             msldem_imgpath, msldem_header, mslrad_offset,
             msldemc_imxy_sample_offset, msldemc_imxy_line_offset,
             msldemc_samples, msldemc_lines, 
             msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
-            bin_count_im, bin_im_c, bin_im_l, bin_imx, bin_imy, bin_rad,
+            bin_count_im, bin_im_c, bin_im_l, bin_rad,
             K_L,K_S,
             &count_napmc,&c_napmc,&l_napmc,&rad_napmc);
     
     /* -----------------------------------------------------------------
      * CALL MAIN COMPUTATION ROUTINE
-     * ----------------------------------------------------------------- */    
-    mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
-            msldem_imgpath, msldem_header, mslrad_offset,
-        (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
-        (int32_T) msldemc_samples, (int32_T) msldemc_lines,
-        msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
-        (int32_T) msldemc_samples, (int32_T) msldemc_lines,
-        msldemc_latitude, msldemc_longitude, msldemt_imUFOVmask,
-        bin_count_im, bin_im_c, bin_im_l,
-        bin_imx, bin_imy, bin_rad,
-        K_L,K_S,
-        count_napmc, c_napmc, l_napmc, rad_napmc,
-        S_im, L_im, cahv_mdl);
+     * ----------------------------------------------------------------- */
+    if(dyu==1){
+        mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DARDYM_M3(
+                msldem_imgpath, msldem_header, mslrad_offset,
+            (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
+            (int32_T) msldemc_samples, (int32_T) msldemc_lines,
+            msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
+            (int32_T) msldemc_samples, (int32_T) msldemc_lines,
+            msldemc_latitude, msldemc_longitude, msldemt_imUFOVmask,
+            bin_count_im, bin_im_c, bin_im_l,bin_rad,
+            K_L,K_S,
+            count_napmc, c_napmc, l_napmc, rad_napmc,
+            S_im, L_im, cahv_mdl);
+    } else if(dyu==0){
+        mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAR_M3(
+                msldem_imgpath, msldem_header, mslrad_offset,
+            (int32_T) msldemc_imxy_sample_offset, (int32_T) msldemc_imxy_line_offset,
+            (int32_T) msldemc_samples, (int32_T) msldemc_lines,
+            msldemc_latitude, msldemc_longitude, msldemc_imFOVmask,
+            (int32_T) msldemc_samples, (int32_T) msldemc_lines,
+            msldemc_latitude, msldemc_longitude, msldemt_imUFOVmask,
+            bin_count_im, bin_im_c, bin_im_l,bin_rad,
+            K_L,K_S,
+            count_napmc, c_napmc, l_napmc, rad_napmc,
+            S_im, L_im, cahv_mdl);
+    } else {
+        printf("Undefined DYU_FLAG=%d\n",dyu);
+    }
         
     
     /* Freeing memories */
@@ -403,8 +413,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
             if(bin_count_im[si][li]>0){
                 free(bin_im_c[si][li]);
                 free(bin_im_l[si][li]);
-                free(bin_imx[si][li]);
-                free(bin_imy[si][li]);
                 free(bin_rad[si][li]);
             }
         }
@@ -415,10 +423,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     free(bin_im_c_base);
     free(bin_im_l_base);
     
-    free(bin_imx);
-    free(bin_imy);
-    free(bin_imx_base);
-    free(bin_imy_base);
     free(bin_rad);
     free(bin_rad_base);
     

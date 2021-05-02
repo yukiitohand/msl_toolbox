@@ -1,21 +1,21 @@
 /* =====================================================================
- * lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAP_M2.h 
+ * lib_proj_mastcamMSLDEM_IAUMars_L2PBK_DAA_M3.h 
  * L2  : msldemc will be read from a file not an input.
  * PBK : Prior Binning into bins with the auxiliary size defined by two parameters K_L and K_S
- * DAP : Dynamic numeric Array with image coordinate (c,l,radius,x_im,y_im)
- * M2  : 2x2 matrix inversion in the camera image coordiate to examine if rays intersect triangles.
+ * DAA : DYnamic numeric Array with shifted Areo-coordinate (c,l,pmcx,pmcy,pmcz)
+ * M3  : 3x3 matrix inversion object image coordinate.
  *
  *
  * Two functions are included
- * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M3
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAADYM_M3
  * below is not implmented yet.
- * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAP_M3
+ * mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAA_M3
  * 
  * DYM : DYnamic Masking of the points already labelled as invisible.
  *
  * ===================================================================== */
-#ifndef LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBK_DAP_M2_H
-#define LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBK_DAP_M2_H
+#ifndef LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBK_DAA_M3_H
+#define LIB_PROJ_MASTCAMMSLDEM_IAUMARS_L2PBK_DAA_M3_H
 
 #include <stdint.h>
 #include "io64.h"
@@ -30,7 +30,7 @@
 #include "mex_create_array.h"
 
 /* main computation routine */
-void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
+void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAADYM_M3(
         char *msldem_imgpath, EnviHeader msldem_header, double mslrad_offset,
         int32_T msldemc_imxy_sample_offset, int32_T msldemc_imxy_line_offset,
         int32_T msldemc_samples, int32_T msldemc_lines,
@@ -38,7 +38,7 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
         int32_T msldemt_samples, int32_T msldemt_lines,
         double *msldemt_latitude, double *msldemt_longitude, int8_T **msldemt_inImage,
         int32_T **bin_count_im, int32_T ***bin_im_c, int32_T ***bin_im_l,
-        double ***bin_imx, double ***bin_imy, double ***bin_rad,
+        double ***bin_pmcx, double ***bin_pmcy, double ***bin_pmcz,
         double K_L, double K_S,
         int32_T count_napmc, int32_T *c_napmc, int32_T *l_napmc, double *rad_napmc,
         double S_im, double L_im, CAHV_MODEL cahv_mdl)
@@ -55,24 +55,28 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
     FILE *fid;
     double ppv1x,ppv1y,ppv2x,ppv2y,ppv3x,ppv3y; /* Plane Position Vectors */
     double ppv1gx,ppv1gy,ppv1gz,ppv2gx,ppv2gy,ppv2gz,ppv3gx,ppv3gy,ppv3gz;
-    double pdv1x,pdv1y,pdv2x,pdv2y;
-    double pdv1gx,pdv1gy,pdv1gz,pdv2gx,pdv2gy,pdv2gz;
+    //double pdv1x,pdv1y,pdv2x,pdv2y;
+    //double pdv1gx,pdv1gy,pdv1gz,pdv2gx,pdv2gy,pdv2gz;
+    double pmcv1x,pmcv1y,pmcv1z;
+    double pmcv2x,pmcv2y,pmcv2z;
+    double pmcv3x,pmcv3y,pmcv3z;
     double detM;
-    double M[2][2];
-    double Minv[2][2];
-    double Minvp[2][3];
+    //double M[2][2];
+    double Minv[3][3];
+    //double Minvp[2][3];
     double x_min,y_min,x_max,y_max;
-    double pipvx,pipvy;
-    double pipvgx,pipvgy,pipvgz;
-    double pdv1z,pdv2z;
-    double pprm_sd,pprm_td,pprm_1std; /* plane parameter for projected image plane */
-    double pipvgppv1x,pipvgppv1y,pipvgppv1z;
-    double pprm_s,pprm_t,pprm_1st;
+    //double pipvx,pipvy;
+    //double pipvgx,pipvgy,pipvgz;
+    //double pdv1z,pdv2z;
+    //double pprm_sd,pprm_td,pprm_1std; /* plane parameter for projected image plane */
+    //double pipvgppv1x,pipvgppv1y,pipvgppv1z;
+    //double pprm_s,pprm_t,pprm_1st;
+    double pprm_s,pprm_t,pprm_u;
     bool isinFOVd,isinFOV;
     
-    double pnx,pny,pnz; /* Plane Normal vectors */
-    double lprm_nume;
-    double lprm; /* line parameters */
+    //double pnx,pny,pnz; /* Plane Normal vectors */
+    //double lprm_nume;
+    //double lprm; /* line parameters */
     
     int32_T xi,yi;
     int32_T x_min_int,x_max_int,y_min_int,y_max_int;
@@ -88,7 +92,7 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
     double *cos_tlat, *sin_tlat;
     double radius_tmp;
     double cos_clatl, sin_clatl, cos_clatlp1, sin_clatlp1, cos_tlatl, sin_tlatl;
-    double x_iaumars, y_iaumars, z_iaumars;
+    // double x_iaumars, y_iaumars, z_iaumars;
     
     cos_clon = (double*) malloc(sizeof(double) * (size_t) msldemc_samples);
     sin_clon = (double*) malloc(sizeof(double) * (size_t) msldemc_samples);
@@ -245,54 +249,67 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
                     if(isinFOVd){
                         /* Evaluate the projection */
                         // pmcx = ppv1gx; pmcy = ppv1gy; pmcz = ppv1gz;
-                        pmcx  = ppv1gx - cam_C[0];
-                        pmcy  = ppv1gy - cam_C[1];
-                        pmcz  = ppv1gz - cam_C[2];
-                        apmc  =  pmcx*cam_A[0] + pmcy*cam_A[1] + pmcz*cam_A[2];
-                        ppv1x = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
-                        ppv1y = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
+                        pmcv1x  = ppv1gx - cam_C[0];
+                        pmcv1y  = ppv1gy - cam_C[1];
+                        pmcv1z  = ppv1gz - cam_C[2];
+                        apmc  =  pmcv1x*cam_A[0] + pmcv1y*cam_A[1] + pmcv1z*cam_A[2];
+                        ppv1x = (pmcv1x*cam_H[0] + pmcv1y*cam_H[1] + pmcv1z*cam_H[2])/apmc;
+                        ppv1y = (pmcv1x*cam_V[0] + pmcv1y*cam_V[1] + pmcv1z*cam_V[2])/apmc;
                         
-                        pmcx  = ppv2gx - cam_C[0];
-                        pmcy  = ppv2gy - cam_C[1];
-                        pmcz  = ppv2gz - cam_C[2];
-                        apmc  =  pmcx*cam_A[0] + pmcy*cam_A[1] + pmcz*cam_A[2];
-                        ppv2x = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
-                        ppv2y = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
+                        pmcv2x  = ppv2gx - cam_C[0];
+                        pmcv2y  = ppv2gy - cam_C[1];
+                        pmcv2z  = ppv2gz - cam_C[2];
+                        apmc  =  pmcv2x*cam_A[0] + pmcv2y*cam_A[1] + pmcv2z*cam_A[2];
+                        ppv2x = (pmcv2x*cam_H[0] + pmcv2y*cam_H[1] + pmcv2z*cam_H[2])/apmc;
+                        ppv2y = (pmcv2x*cam_V[0] + pmcv2y*cam_V[1] + pmcv2z*cam_V[2])/apmc;
                         
                         
                         // pmcx = ppv3gx; pmcy = ppv3gy; pmcz = ppv3gz;
-                        pmcx  = ppv3gx - cam_C[0];
-                        pmcy  = ppv3gy - cam_C[1];
-                        pmcz  = ppv3gz - cam_C[2];
-                        apmc  =  pmcx*cam_A[0] + pmcy*cam_A[1] + pmcz*cam_A[2];
-                        ppv3x = (pmcx*cam_H[0] + pmcy*cam_H[1] + pmcz*cam_H[2])/apmc;
-                        ppv3y = (pmcx*cam_V[0] + pmcy*cam_V[1] + pmcz*cam_V[2])/apmc;
+                        pmcv3x  = ppv3gx - cam_C[0];
+                        pmcv3y  = ppv3gy - cam_C[1];
+                        pmcv3z  = ppv3gz - cam_C[2];
+                        apmc  =  pmcv3x*cam_A[0] + pmcv3y*cam_A[1] + pmcv3z*cam_A[2];
+                        ppv3x = (pmcv3x*cam_H[0] + pmcv3y*cam_H[1] + pmcv3z*cam_H[2])/apmc;
+                        ppv3y = (pmcv3x*cam_V[0] + pmcv3y*cam_V[1] + pmcv3z*cam_V[2])/apmc;
                         
                         //printf("c=%d\n",l);
+                        Minv[0][0] = pmcv2y*pmcv3z - pmcv3y*pmcv2z;
+                        Minv[0][1] = pmcv2z*pmcv3x - pmcv3z*pmcv2x;
+                        Minv[0][2] = pmcv2x*pmcv3y - pmcv3x*pmcv2y;
+                        detM = pmcv1x*Minv[0][0] + pmcv1y * Minv[0][1] + pmcv1z * Minv[0][2];
+                        Minv[0][0] /= detM;
+                        Minv[0][1] /= detM;
+                        Minv[0][2] /= detM;
+                        Minv[1][0] = (pmcv3y*pmcv1z-pmcv1y*pmcv3z)/detM;
+                        Minv[1][1] = (pmcv3z*pmcv1x-pmcv1z*pmcv3x)/detM;
+                        Minv[1][2] = (pmcv3x*pmcv1y-pmcv1x*pmcv3y)/detM;
+                        Minv[2][0] = (pmcv1y*pmcv2z-pmcv2y*pmcv1z)/detM;
+                        Minv[2][1] = (pmcv1z*pmcv2x-pmcv2z*pmcv1x)/detM;
+                        Minv[2][2] = (pmcv1x*pmcv2y-pmcv2x*pmcv1y)/detM;
 
                         // define some plane parameters
-                        pdv1x = ppv2x - ppv1x; pdv1y = ppv2y - ppv1y;
-                        pdv2x = ppv3x - ppv1x; pdv2y = ppv3y - ppv1y;
-                        detM = pdv1x*pdv2y - pdv1y*pdv2x;
-                        Minv[0][0] = pdv2y/detM;
-                        Minv[0][1] = -pdv2x/detM;
-                        Minv[1][0] = -pdv1y/detM;
-                        Minv[1][1] = pdv1x/detM;
+                        //pdv1x = ppv2x - ppv1x; pdv1y = ppv2y - ppv1y;
+                        //pdv2x = ppv3x - ppv1x; pdv2y = ppv3y - ppv1y;
+                        //detM = pdv1x*pdv2y - pdv1y*pdv2x;
+                        //Minv[0][0] = pdv2y/detM;
+                        //Minv[0][1] = -pdv2x/detM;
+                        //Minv[1][0] = -pdv1y/detM;
+                        //Minv[1][1] = pdv1x/detM;
                         
-                        pdv1gx = ppv2gx - ppv1gx;
-                        pdv1gy = ppv2gy - ppv1gy;
-                        pdv1gz = ppv2gz - ppv1gz;
-                        pdv2gx = ppv3gx - ppv1gx;
-                        pdv2gy = ppv3gy - ppv1gy;
-                        pdv2gz = ppv3gz - ppv1gz;
+                        // pdv1gx = ppv2gx - ppv1gx;
+                        // pdv1gy = ppv2gy - ppv1gy;
+                        // pdv1gz = ppv2gz - ppv1gz;
+                        // pdv2gx = ppv3gx - ppv1gx;
+                        // pdv2gy = ppv3gy - ppv1gy;
+                        // pdv2gz = ppv3gz - ppv1gz;
                         /* parameters for plane equations
                          * plane normal vector (pn)
                          * plane constant (pc)
                         */
-                        pnx = pdv1gy*pdv2gz - pdv1gz*pdv2gy;
-                        pny = pdv1gz*pdv2gx - pdv1gx*pdv2gz;
-                        pnz = pdv1gx*pdv2gy - pdv1gy*pdv2gx;
-                        lprm_nume = pnx*(ppv1gx-cam_C[0])+pny*(ppv1gy-cam_C[1])+pnz*(ppv1gz-cam_C[2]);
+                        // pnx = pdv1gy*pdv2gz - pdv1gz*pdv2gy;
+                        // pny = pdv1gz*pdv2gx - pdv1gx*pdv2gz;
+                        // pnz = pdv1gx*pdv2gy - pdv1gy*pdv2gx;
+                        // lprm_nume = pnx*(ppv1gx-cam_C[0])+pny*(ppv1gy-cam_C[1])+pnz*(ppv1gz-cam_C[2]);
                         
                         /* for pre-screening */
                         x_min = fmin(fmin(ppv1x,ppv2x),ppv3x);
@@ -333,26 +350,19 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
                                     ll = bin_im_l[xi][yi][n];
                                     /* evaluate line param */
                                     if(msldemt_inImage[cc][ll]){
-                                        radius_tmp = bin_rad[xi][yi][n];
-                                        x_iaumars  = radius_tmp * cos_tlat[ll] * cos_tlon[cc];
-                                        y_iaumars  = radius_tmp * cos_tlat[ll] * sin_tlon[cc];
-                                        z_iaumars  = radius_tmp * sin_tlat[ll];
-                                        pmcx = x_iaumars - cam_C[0];
-                                        pmcy = y_iaumars - cam_C[1];
-                                        pmcz = z_iaumars - cam_C[2];
-                                        lprm = lprm_nume/(pnx*pmcx+pny*pmcy+pnz*pmcz);
-                                        if(lprm<1 && lprm>0){
-                                            /* evaluate the test vector is inside the triangle. */
-                                            ppvx = bin_imx[xi][yi][n];
-                                            ppvy = bin_imy[xi][yi][n];
-                                            pipvx = ppvx - ppv1x; pipvy = ppvy - ppv1y; 
-                                            pprm_sd = Minv[0][0]*pipvx+Minv[0][1]*pipvy;
-                                            pprm_td = Minv[1][0]*pipvx+Minv[1][1]*pipvy;
-                                            pprm_1std = 1-pprm_sd-pprm_td;
-                                            if(pprm_sd>0 && pprm_td>0 && pprm_1std>0){
-                                                if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
-                                                } else {
-                                                msldemt_inImage[cc][ll] = 0;
+                                        pmcx = bin_pmcx[xi][yi][n];
+                                        pmcy = bin_pmcy[xi][yi][n];
+                                        pmcz = bin_pmcz[xi][yi][n];
+                                        pprm_s = Minv[0][0]*pmcx+Minv[0][1]*pmcy+Minv[0][2]*pmcz;
+                                        if(pprm_s>0){
+                                            pprm_t = Minv[1][0]*pmcx+Minv[1][1]*pmcy+Minv[1][2]*pmcz;
+                                            if(pprm_t>0){
+                                                pprm_u = Minv[2][0]*pmcx+Minv[2][1]*pmcy+Minv[2][2]*pmcz;
+                                                if( (pprm_u>0) && (pprm_s+pprm_t+pprm_u>1) ){
+                                                    if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
+                                                    } else {
+                                                    msldemt_inImage[cc][ll] = 0;
+                                                    }
                                                 }
                                             }
                                         }
@@ -361,104 +371,104 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_DAPDYM_M2(
                             }
                         }
                     } else if(isinFOV){
-                        pdv1x = ppv2gx - ppv1gx;
-                        pdv1y = ppv2gy - ppv1gy;
-                        pdv1z = ppv2gz - ppv1gz;
-                        pdv2x = ppv3gx - ppv1gx;
-                        pdv2y = ppv3gy - ppv1gy;
-                        pdv2z = ppv3gz - ppv1gz;
-                        pnx = pdv1y*pdv2z - pdv1z*pdv2y;
-                        pny = pdv1z*pdv2x - pdv1x*pdv2z;
-                        pnz = pdv1x*pdv2y - pdv1y*pdv2x;
-                        
-                        /* Get Plane parameters */
-                        M[0][0] = pdv1x*pdv1x + pdv1y*pdv1y + pdv1z*pdv1z;
-                        M[0][1] = pdv1x*pdv2x + pdv1y*pdv2y + pdv1z*pdv2z;
-                        M[1][0] = M[0][1];
-                        M[1][1] = pdv2x*pdv2x + pdv2y*pdv2y + pdv2z*pdv2z;
-                        detM = M[0][0]*M[1][1] - M[0][1]*M[0][1];
-                        Minv[0][0] = M[1][1]/detM;
-                        Minv[0][1] = -M[0][1]/detM;
-                        Minv[1][0] = -M[1][0]/detM;
-                        Minv[1][1] = M[0][0]/detM;
-                        Minvp[0][0] = Minv[0][0]*pdv1x+Minv[0][1]*pdv2x;
-                        Minvp[0][1] = Minv[0][0]*pdv1y+Minv[0][1]*pdv2y;
-                        Minvp[0][2] = Minv[0][0]*pdv1z+Minv[0][1]*pdv2z;
-                        Minvp[1][0] = Minv[1][0]*pdv1x+Minv[1][1]*pdv2x;
-                        Minvp[1][1] = Minv[1][0]*pdv1y+Minv[1][1]*pdv2y;
-                        Minvp[1][2] = Minv[1][0]*pdv1z+Minv[1][1]*pdv2z;
+//                         pdv1x = ppv2gx - ppv1gx;
+//                         pdv1y = ppv2gy - ppv1gy;
+//                         pdv1z = ppv2gz - ppv1gz;
+//                         pdv2x = ppv3gx - ppv1gx;
+//                         pdv2y = ppv3gy - ppv1gy;
+//                         pdv2z = ppv3gz - ppv1gz;
+//                         pnx = pdv1y*pdv2z - pdv1z*pdv2y;
+//                         pny = pdv1z*pdv2x - pdv1x*pdv2z;
+//                         pnz = pdv1x*pdv2y - pdv1y*pdv2x;
+//                         
+//                         /* Get Plane parameters */
+//                         M[0][0] = pdv1x*pdv1x + pdv1y*pdv1y + pdv1z*pdv1z;
+//                         M[0][1] = pdv1x*pdv2x + pdv1y*pdv2y + pdv1z*pdv2z;
+//                         M[1][0] = M[0][1];
+//                         M[1][1] = pdv2x*pdv2x + pdv2y*pdv2y + pdv2z*pdv2z;
+//                         detM = M[0][0]*M[1][1] - M[0][1]*M[0][1];
+//                         Minv[0][0] = M[1][1]/detM;
+//                         Minv[0][1] = -M[0][1]/detM;
+//                         Minv[1][0] = -M[1][0]/detM;
+//                         Minv[1][1] = M[0][0]/detM;
+//                         Minvp[0][0] = Minv[0][0]*pdv1x+Minv[0][1]*pdv2x;
+//                         Minvp[0][1] = Minv[0][0]*pdv1y+Minv[0][1]*pdv2y;
+//                         Minvp[0][2] = Minv[0][0]*pdv1z+Minv[0][1]*pdv2z;
+//                         Minvp[1][0] = Minv[1][0]*pdv1x+Minv[1][1]*pdv2x;
+//                         Minvp[1][1] = Minv[1][0]*pdv1y+Minv[1][1]*pdv2y;
+//                         Minvp[1][2] = Minv[1][0]*pdv1z+Minv[1][1]*pdv2z;
                         
                         /* parameters for plane equations
                          * plane normal vector (pn)
                          * plane constant (pc)
                         */
-                        pnx = pdv1gy*pdv2gz - pdv1gz*pdv2gy;
-                        pny = pdv1gz*pdv2gx - pdv1gx*pdv2gz;
-                        pnz = pdv1gx*pdv2gy - pdv1gy*pdv2gx;
-                        lprm_nume = pnx*(ppv1gx-cam_C[0])+pny*(ppv1gy-cam_C[1])+pnz*(ppv1gz-cam_C[2]);
+                        //pnx = pdv1gy*pdv2gz - pdv1gz*pdv2gy;
+                        //pny = pdv1gz*pdv2gx - pdv1gx*pdv2gz;
+                        //pnz = pdv1gx*pdv2gy - pdv1gy*pdv2gx;
+                        //lprm_nume = pnx*(ppv1gx-cam_C[0])+pny*(ppv1gy-cam_C[1])+pnz*(ppv1gz-cam_C[2]);
                         
-                        for(xi=0;xi<binS;xi++){
-                            for(yi=0;yi<binL;yi++){
-                                for (n=0;n<bin_count_im[xi][yi];n++){
-                                    cc = bin_im_c[xi][yi][n];
-                                    ll = bin_im_l[xi][yi][n];
-                                    /* evaluate line param */
-                                    radius_tmp = bin_rad[xi][yi][n];
-                                    x_iaumars  = radius_tmp * cos_tlat[ll] * cos_tlon[cc];
-                                    y_iaumars  = radius_tmp * cos_tlat[ll] * sin_tlon[cc];
-                                    z_iaumars  = radius_tmp * sin_tlat[ll];
-                                    pmcx = x_iaumars - cam_C[0];
-                                    pmcy = y_iaumars - cam_C[1];
-                                    pmcz = z_iaumars - cam_C[2];
-                                    lprm = lprm_nume/(pnx*pmcx+pny*pmcy+pnz*pmcz);
-                                    if(lprm<1 && lprm>0){
-                                        /* evaluate the test vector is inside the triangle. */
-                                        pipvgppv1x = lprm*pmcx - ppv1gx;
-                                        pipvgppv1y = lprm*pmcy - ppv1gy;
-                                        pipvgppv1z = lprm*pmcz - ppv1gy;
-                                        pprm_s = Minvp[0][0]*pipvgppv1x+Minvp[0][1]*pipvgppv1y+Minvp[0][2]*pipvgppv1z;
-                                        pprm_t = Minvp[1][0]*pipvgppv1x+Minvp[1][1]*pipvgppv1y+Minvp[1][2]*pipvgppv1z;
-                                        pprm_1st = 1 - pprm_s - pprm_t;
-                                        if(pprm_s>0 && pprm_t>0 && pprm_1st>0){
-                                            if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
-                                            } else {
-                                            msldemt_inImage[cc][ll] = 0;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                         for(xi=0;xi<binS;xi++){
+//                             for(yi=0;yi<binL;yi++){
+//                                 for (n=0;n<bin_count_im[xi][yi];n++){
+//                                     cc = bin_im_c[xi][yi][n];
+//                                     ll = bin_im_l[xi][yi][n];
+//                                     /* evaluate line param */
+//                                     radius_tmp = bin_rad[xi][yi][n];
+//                                     x_iaumars  = radius_tmp * cos_tlat[ll] * cos_tlon[cc];
+//                                     y_iaumars  = radius_tmp * cos_tlat[ll] * sin_tlon[cc];
+//                                     z_iaumars  = radius_tmp * sin_tlat[ll];
+//                                     pmcx = x_iaumars - cam_C[0];
+//                                     pmcy = y_iaumars - cam_C[1];
+//                                     pmcz = z_iaumars - cam_C[2];
+//                                     //lprm = lprm_nume/(pnx*pmcx+pny*pmcy+pnz*pmcz);
+//                                     // if(lprm<1 && lprm>0){
+//                                         /* evaluate the test vector is inside the triangle. */
+//                                         //pipvgppv1x = lprm*pmcx - ppv1gx;
+//                                         //pipvgppv1y = lprm*pmcy - ppv1gy;
+//                                         //pipvgppv1z = lprm*pmcz - ppv1gy;
+//                                         //pprm_s = Minvp[0][0]*pipvgppv1x+Minvp[0][1]*pipvgppv1y+Minvp[0][2]*pipvgppv1z;
+//                                         //pprm_t = Minvp[1][0]*pipvgppv1x+Minvp[1][1]*pipvgppv1y+Minvp[1][2]*pipvgppv1z;
+//                                         //pprm_1st = 1 - pprm_s - pprm_t;
+//                                         //if(pprm_s>0 && pprm_t>0 && pprm_1st>0){
+//                                         //    if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
+//                                         //    } else {
+//                                         //    msldemt_inImage[cc][ll] = 0;
+//                                         //    }
+//                                         //}
+//                                     //}
+//                                 }
+//                             }
+//                         }
                         
                         /* test vectors with napmc<0 */
-                        if(count_napmc>0){
-                            for(n=0;n<count_napmc;n++){
-                                cc = c_napmc[n]; ll = l_napmc[n];
-                                radius_tmp = rad_napmc[n];
-                                x_iaumars  = radius_tmp * cos_tlat[ll] * cos_tlon[cc];
-                                y_iaumars  = radius_tmp * cos_tlat[ll] * sin_tlon[cc];
-                                z_iaumars  = radius_tmp * sin_tlat[ll];
-                                pmcx = x_iaumars - cam_C[0];
-                                pmcy = y_iaumars - cam_C[1];
-                                pmcz = z_iaumars - cam_C[2];
-                                lprm = lprm_nume/(pnx*pmcx+pny*pmcy+pnz*pmcz);
-                                if(lprm<1 && lprm>0){
-                                    /* evaluate the test vector is inside the triangle. */
-                                    pipvgppv1x = lprm*pmcx - ppv1gx;
-                                    pipvgppv1y = lprm*pmcy - ppv1gy;
-                                    pipvgppv1z = lprm*pmcz - ppv1gy;
-                                    pprm_s = Minvp[0][0]*pipvgppv1x+Minvp[0][1]*pipvgppv1y+Minvp[0][2]*pipvgppv1z;
-                                    pprm_t = Minvp[1][0]*pipvgppv1x+Minvp[1][1]*pipvgppv1y+Minvp[1][2]*pipvgppv1z;
-                                    pprm_1st = 1 - pprm_s - pprm_t;
-                                    if(pprm_s>0 && pprm_t>0 && pprm_1st>0){
-                                        if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
-                                        } else {
-                                        msldemt_inImage[cc][ll] = 0;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                         if(count_napmc>0){
+//                             for(n=0;n<count_napmc;n++){
+//                                 cc = c_napmc[n]; ll = l_napmc[n];
+//                                 radius_tmp = rad_napmc[n];
+//                                 x_iaumars  = radius_tmp * cos_tlat[ll] * cos_tlon[cc];
+//                                 y_iaumars  = radius_tmp * cos_tlat[ll] * sin_tlon[cc];
+//                                 z_iaumars  = radius_tmp * sin_tlat[ll];
+//                                 pmcx = x_iaumars - cam_C[0];
+//                                 pmcy = y_iaumars - cam_C[1];
+//                                 pmcz = z_iaumars - cam_C[2];
+//                                 //lprm = lprm_nume/(pnx*pmcx+pny*pmcy+pnz*pmcz);
+//                                 //if(lprm<1 && lprm>0){
+//                                     /* evaluate the test vector is inside the triangle. */
+//                                     //pipvgppv1x = lprm*pmcx - ppv1gx;
+//                                     //pipvgppv1y = lprm*pmcy - ppv1gy;
+//                                     //pipvgppv1z = lprm*pmcz - ppv1gy;
+//                                     //pprm_s = Minvp[0][0]*pipvgppv1x+Minvp[0][1]*pipvgppv1y+Minvp[0][2]*pipvgppv1z;
+//                                     //pprm_t = Minvp[1][0]*pipvgppv1x+Minvp[1][1]*pipvgppv1y+Minvp[1][2]*pipvgppv1z;
+//                                     //pprm_1st = 1 - pprm_s - pprm_t;
+//                                     //if(pprm_s>0 && pprm_t>0 && pprm_1st>0){
+//                                     //    if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
+//                                     //    } else {
+//                                     //    msldemt_inImage[cc][ll] = 0;
+//                                     //    }
+//                                     //}
+//                                 //}
+//                             }
+//                         }
                         
                     }
                 }
