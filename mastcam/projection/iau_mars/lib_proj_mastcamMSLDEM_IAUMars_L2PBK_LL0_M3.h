@@ -370,7 +370,7 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_LL0DYU_M3(
                         }
                         for(xi=x_min_int;xi<x_max_int;xi++){
                             for(yi=y_min_int;yi<y_max_int;yi++){
-                                ll_papmc_next = &(ll_papmc_bin[xi][yi]);
+                                ll_papmc_next = &ll_papmc_bin[xi][yi];
                                 ll_curr = *ll_papmc_next;
                                 // ll=2147483647;
                                 while(ll_curr){
@@ -391,7 +391,7 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_LL0DYU_M3(
                                             pprm_u = Minv[2][0]*pmcx+Minv[2][1]*pmcy+Minv[2][2]*pmcz;
                                             if( (pprm_u>0) && (pprm_s+pprm_t+pprm_u>1) ){
                                                 if((cc==cv1 && ll==lv1) || (cc==cv2 && ll==lv2) || (cc==cv3 && ll==lv3)){
-                                                    ll_papmc_next = &(ll_curr->next);
+                                                    ll_papmc_next = &ll_curr->next;
                                                 } else {
                                                     msldemt_inImage[cc][ll] = 0;
                                                     // if(ll_papmc_next->next!=NULL){
@@ -407,13 +407,13 @@ void mask_obstructed_pts_in_msldemt_using_msldemc_iaumars_L2PBK_LL0DYU_M3(
                                                     free(ll_curr);
                                                 }
                                             } else {
-                                                ll_papmc_next = &(ll_curr->next);
+                                                ll_papmc_next = &ll_curr->next;
                                             }
                                         } else {
-                                            ll_papmc_next = &(ll_curr->next);
+                                            ll_papmc_next = &ll_curr->next;
                                         }
                                     } else {
-                                        ll_papmc_next = &(ll_curr->next);
+                                        ll_papmc_next = &ll_curr->next;
                                     }
                                     ll_curr = *ll_papmc_next;
                                 } /* End of While */
