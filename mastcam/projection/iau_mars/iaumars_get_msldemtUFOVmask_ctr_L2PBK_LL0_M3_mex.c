@@ -150,44 +150,51 @@ void bin_msldemt_ctr_iaumars_L2PBK_LL0(double S_im, double L_im, CAHV_MODEL cahv
                 else if(yi>binLm1)
                     yi = binLm1;
                 
-                if(ll_papmc[xi][yi]!=NULL){
-                    ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList));
-                    ll_papmc_next->c = c;
-                    ll_papmc_next->l = l;
-                    ll_papmc_next->radius = radius_tmp;
-                    ll_papmc_next->next = ll_papmc[xi][yi];
-                    ll_papmc[xi][yi]->prev = ll_papmc_next;
-                    ll_papmc[xi][yi] = ll_papmc_next;
-                    ll_papmc_next->prev = NULL;
-                } else {
-                    ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList));
-                    ll_papmc_next->c = c;
-                    ll_papmc_next->l = l;
-                    ll_papmc_next->radius = radius_tmp;
-                    ll_papmc_next->next = NULL;
-                    ll_papmc[xi][yi] = ll_papmc_next;
-                    ll_papmc_next->prev = NULL;
-                }
+                ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList));
+                ll_papmc_next->c = c;
+                ll_papmc_next->l = l;
+                ll_papmc_next->radius = radius_tmp;
+                ll_papmc_next->next = ll_papmc[xi][yi];
+                ll_papmc[xi][yi] = ll_papmc_next;
+                
+//                 if(ll_papmc[xi][yi]!=NULL){
+//                     ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList));
+//                     ll_papmc_next->c = c;
+//                     ll_papmc_next->l = l;
+//                     ll_papmc_next->radius = radius_tmp;
+//                     ll_papmc_next->next = ll_papmc[xi][yi];
+//                     ll_papmc[xi][yi]->prev = ll_papmc_next;
+//                     ll_papmc[xi][yi] = ll_papmc_next;
+//                     ll_papmc_next->prev = NULL;
+//                 } else {
+//                     ll_papmc_next = malloc(sizeof(struct MSLDEMmask_LinkedList));
+//                     ll_papmc_next->c = c;
+//                     ll_papmc_next->l = l;
+//                     ll_papmc_next->radius = radius_tmp;
+//                     ll_papmc_next->next = NULL;
+//                     ll_papmc[xi][yi] = ll_papmc_next;
+//                     ll_papmc_next->prev = NULL;
+//                 }
 
             } else if(msldemc_imFOVmask[c][l]==1) {
                 /*  */
-                if(ll_napmc_next!=NULL){
-                    ll_napmc_next->next = malloc(sizeof(struct MSLDEMmask_LinkedList));
-                    ll_napmc_next->next->prev = ll_napmc_next;
-                    ll_napmc_next = ll_napmc_next->next;
-                    ll_napmc_next->c = c;
-                    ll_napmc_next->l = l;
-                    ll_napmc_next->radius = radius_tmp;
-                    ll_napmc_next->next = NULL;
-                } else {
-                    (*ll_napmc) = malloc(sizeof(struct MSLDEMmask_LinkedList));
-                    ll_napmc_next = (*ll_napmc);
-                    ll_napmc_next->c = c;
-                    ll_napmc_next->l = l;
-                    ll_napmc_next->radius = radius_tmp;
-                    ll_napmc_next->next = NULL;
-                    ll_napmc_next->prev = NULL;
-                }
+//                 if(ll_napmc_next!=NULL){
+//                     ll_napmc_next->next = malloc(sizeof(struct MSLDEMmask_LinkedList));
+//                     ll_napmc_next->next->prev = ll_napmc_next;
+//                     ll_napmc_next = ll_napmc_next->next;
+//                     ll_napmc_next->c = c;
+//                     ll_napmc_next->l = l;
+//                     ll_napmc_next->radius = radius_tmp;
+//                     ll_napmc_next->next = NULL;
+//                 } else {
+//                     (*ll_napmc) = malloc(sizeof(struct MSLDEMmask_LinkedList));
+//                     ll_napmc_next = (*ll_napmc);
+//                     ll_napmc_next->c = c;
+//                     ll_napmc_next->l = l;
+//                     ll_napmc_next->radius = radius_tmp;
+//                     ll_napmc_next->next = NULL;
+//                     ll_napmc_next->prev = NULL;
+//                 }
             }
         }
     }
