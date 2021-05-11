@@ -12,7 +12,7 @@
  * 3 msldemc_imFOVhdr      Struct
  * 4 msldemc_latitude      Double array [L_demc]
  * 5 msldemc_longitude     Double array [S_demc]
- * 6 msldemc_imFOVmask     int8_T [L_demc x S_demc]
+ * 6 msldemc_imFOVmask     int8_t [L_demc x S_demc]
  * 7 S_im                  int
  * 8 L_im                  int
  * 9 cahv_mdl              CAHV_MODEL
