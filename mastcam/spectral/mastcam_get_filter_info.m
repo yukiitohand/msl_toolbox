@@ -1,8 +1,7 @@
 function [mst_filter_info] = mastcam_get_filter_info(msteye)
-
+mst_filter_info = [];
 switch upper(msteye)
     case 'L'
-        mst_filter_info = [];
         mst_filter_info.L0 = [];
         mst_filter_info.L0.wv_ctr = [640 554 495];
         mst_filter_info.L0.HWHM   = [ 44  38  37];

@@ -2,7 +2,7 @@ classdef MASTCAMMSIview < handle
     %MASTCAMview
     %   Spectral Viewer for MASTCAM images
     properties
-        obj_HSIview
+        objENVIRasterMultview
         MASTCAMdataseq_eye
         MSTMSI
         MSTproj
@@ -38,14 +38,14 @@ classdef MASTCAMMSIview < handle
             % for i=1:length(hsiar_input)
             [rgbList] = obj.process_mstmsi_input(mstmsi_input);
             if ~iscell(rgbList),rgbList = {rgbList}; end
-            obj.obj_HSIview = HSIview(rgbList,...
+            obj.objENVIRasterMultview = ENVIRasterMultview(rgbList,...
             mstmsi_input,...
             ...'SPC_XLIM',[300 1200],...
             'varargin_ImageStackView',{'Ydir','reverse','XY_COORDINATE_SYSTEM','IMAGEPIXELS'},...
             'SpecView',objSpecView);
         
-            obj.obj_HSIview.obj_ISV.custom_image_cursor_fcn = @obj.ISV_MASTCAM_BtnDwnFcn;
-            obj.obj_HSIview.obj_ISV.custom_windowkeypress_fcn = @obj.ISV_MASTCAM_WindowKeyPressFcn;
+            obj.objENVIRasterMultview.obj_ISV.custom_image_cursor_fcn = @obj.ISV_MASTCAM_BtnDwnFcn;
+            obj.objENVIRasterMultview.obj_ISV.custom_windowkeypress_fcn = @obj.ISV_MASTCAM_WindowKeyPressFcn;
             
         end
         
@@ -99,8 +99,10 @@ classdef MASTCAMMSIview < handle
                     end
                 end
             end
-            obj.obj_HSIview.obj_ISV.add_layer(MSTproj.mastcam_range,'name','Range');
-            obj.obj_HSIview.obj_ISV.add_layer(MSTproj.mastcam_emi,'name','Emission');
+            mst_range_img = MSTproj.mastcam_proj.range.readimg('precision','raw');
+            obj.objENVIRasterMultview.obj_ISV.add_layer(mst_range_img,'name','Range');
+            mst_emiang_img = MSTproj.mastcam_proj.emiang.readimg('precision','raw');
+            obj.objENVIRasterMultview.obj_ISV.add_layer(mst_emiang_img,'name','Emission');
             obj.MSTproj = MSTproj;
             if isempty(obj.MSTOrthoISV)
                 obj.MSTOrthoISV = MASTCAMOrthoISV(obj);
@@ -114,17 +116,17 @@ classdef MASTCAMMSIview < handle
         function init_MSTOrthoISV(obj)
             % get MSLDEM image
             % set margin pixels for the UFOVmask
-            [msldemc_img,msldemc_img_hdr] = obj.MSTproj.MSLDEMread();
+            % [msldemc_img,msldemc_img_hdr] = obj.MSTproj.MSLDEMread();
             
-            obj.MSTOrthoISV.ISV.add_layer(...
-                obj.MSTproj.MSLDEMdata.hdr.x([msldemc_img_hdr.sample_offset+1,msldemc_img_hdr.sample_offset+msldemc_img_hdr.samples]),...
-                obj.MSTproj.MSLDEMdata.hdr.y([msldemc_img_hdr.line_offset+1,msldemc_img_hdr.line_offset+msldemc_img_hdr.lines]),...
-                msldemc_img,'name','MSLDEM');
-            obj.MSTOrthoISV.ISV.add_layer(...
-                obj.MSTproj.msldemc_imUFOVhdr.x([1,end]),...
-                obj.MSTproj.msldemc_imUFOVhdr.y([1,end]),...
-                obj.MSTproj.msldemc_imUFOVmask,'name','UFOV mask',...
-                'alphadata',obj.MSTproj.msldemc_imUFOVmask>0);
+            % obj.MSTOrthoISV.ISV.add_layer(...
+            %     obj.MSTproj.MSLDEMdata.hdr.x([msldemc_img_hdr.sample_offset+1,msldemc_img_hdr.sample_offset+msldemc_img_hdr.samples]),...
+            %     obj.MSTproj.MSLDEMdata.hdr.y([msldemc_img_hdr.line_offset+1,msldemc_img_hdr.line_offset+msldemc_img_hdr.lines]),...
+            %     msldemc_img,'name','MSLDEM');
+            % obj.MSTOrthoISV.ISV.add_layer(...
+            %     obj.MSTproj.msldemc_imUFOVhdr.x([1,end]),...
+            %     obj.MSTproj.msldemc_imUFOVhdr.y([1,end]),...
+            %     obj.MSTproj.msldemc_imUFOVmask,'name','UFOV mask',...
+            %     'alphadata',obj.MSTproj.msldemc_imUFOVmask>0);
             
             obj.MSTOrthoISV.ISV.Update_axim_aspectR();
             obj.MSTOrthoISV.ISV.Restore_ImageAxes2LimHome();
@@ -142,7 +144,7 @@ classdef MASTCAMMSIview < handle
         % MASTCAM window button down callback function
         % =================================================================
         function [out] = ISV_MASTCAM_BtnDwnFcn(obj,hObject,eventData)
-            [out] = obj.obj_HSIview.image_BtnDwnFcn_HSIview(hObject,eventData);
+            [out] = obj.objENVIRasterMultview.image_BtnDwnFcn_HSIview(hObject,eventData);
             cursor_obj = out.cursor_obj;
             if isfield(cursor_obj.UserData,'MSTprojViewPlotObj')
             else
@@ -194,7 +196,7 @@ classdef MASTCAMMSIview < handle
         end
         
         function [out] = ISV_MASTCAM_WindowKeyPressFcn(obj,figobj,eventData)
-            [out] = obj.ISV_MASTCAM.obj_HSIview.image_WindowKeyPressFcn_HSIview(figobj,eventData);
+            [out] = obj.ISV_MASTCAM.objENVIRasterMultview.image_WindowKeyPressFcn_HSIview(figobj,eventData);
             % future implementation
         end
         
@@ -205,7 +207,7 @@ classdef MASTCAMMSIview < handle
             col3 = reshape(col,[1,1,3]);
             if isempty(obj.isvimage_MASTCAM_SelectMask) || ~isvalid(obj.isvimage_MASTCAM_SelectMask)
                 obj.isvimage_MASTCAM_SelectMask ...
-                    = obj.obj_HSIview.obj_ISV.add_layer(...
+                    = obj.objENVIRasterMultview.obj_ISV.add_layer(...
                     mask_mastcam.*col3,'AlphaData',double(mask_mastcam),'name','SelectMask');
                 % obj.isvimage_MASTCAM_SelectMask.ax.NextPlot = 'replacechildren';
                 obj.isvimage_MASTCAM_SelectMask.ismask = true;
@@ -219,18 +221,18 @@ classdef MASTCAMMSIview < handle
         
         function line_obj = plot_mastcam(obj,mask_mastcam,varargin)
             mask_mastcam_1nan = convertBoolTo1nan(mask_mastcam);
-            for i=1:obj.obj_HSIview.nhsi
-                mstmsi = obj.obj_HSIview.hsiar(i).hsi;
+            for i=1:obj.objENVIRasterMultview.nhsi
+                mstmsi = obj.objENVIRasterMultview.hsiar(i).hsi;
                 spc = squeeze(nanmean(mstmsi.img.*mask_mastcam_1nan,[1,2]));
                 wv = mstmsi.wavelength;
                 bdxes = 1:mstmsi.hdr.bands;
-                line_obj = obj.obj_HSIview.obj_SpecView.plot(...
+                line_obj = obj.objENVIRasterMultview.obj_SpecView.plot(...
                     [wv,spc,'DisplayName',...
-                    sprintf('%s AVE',obj.obj_HSIview.hsiar(i).name),varargin],...
+                    sprintf('%s AVE',obj.objENVIRasterMultview.hsiar(i).name),varargin],...
                     {'Band',bdxes});
             end
-            obj.obj_HSIview.obj_SpecView.set_xlim();
-            obj.obj_HSIview.obj_SpecView.set_ylim();
+            obj.objENVIRasterMultview.obj_SpecView.set_xlim();
+            obj.objENVIRasterMultview.obj_SpecView.set_ylim();
         end
         
         

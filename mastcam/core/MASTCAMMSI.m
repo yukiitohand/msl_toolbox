@@ -1,4 +1,4 @@
-classdef MASTCAMMSI < dynamicprops
+classdef MASTCAMMSI < dynamicprops & ENVIRaster
     % MASTCAM Multispectral Image class
     %   
     
@@ -12,8 +12,6 @@ classdef MASTCAMMSI < dynamicprops
         wavelength
         wavelength_filternames
         wavelength2filter
-        img
-        hdr
         MASTCAMColorCor
     end
     
@@ -22,7 +20,7 @@ classdef MASTCAMMSI < dynamicprops
             % obj.eye = mstgrp_wpc.eye;
             % obj.RMC = mstgrp_wpc.RMC;
             % obj.Linearization = mstgrp_wpc.Linearization;
-            
+            obj@ENVIRaster('','');
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
             else
@@ -167,6 +165,17 @@ classdef MASTCAMMSI < dynamicprops
                 imrgb = [];
             end
         end
+        
+        function [spc,wv,bdxes] = get_spectrum_average(obj,srange,lrange,weight)
+            if isempty(srange) || isempty(lrange) || isempty(weight)
+                spc = []; wv = []; bdxes = [];
+            else
+                spc = squeeze(sum(obj.img(lrange(1):lrange(2),srange(1):srange(2),:) .* double(weight),[1,2]))./double(sum(weight,'all'));
+                wv = obj.wavelength;
+                bdxes = 1:obj.hdr.bands;
+            end
+        end
+        
         
     end
 end

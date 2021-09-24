@@ -9,10 +9,15 @@ classdef MSLGaleMosaic_v3 < ENVIRasterSingleLayerEquirectProjRot0
             
             obj@ENVIRasterSingleLayerEquirectProjRot0(...
                 basename,dirpath,varargin{:});
+            
             obj.lblpath = joinPath(dirpath,[basename '_pds3.lbl']);
-            obj.lbl = pds3lblread(obj.lblpath);
-            obj.hdr = MSLGaleMosaic_v3_lbl2hdr(obj.lbl);
-            obj.get_proj_info();
+            if exist(obj.lblpath,'file')
+                obj.lbl = pds3lblread(obj.lblpath);
+                obj.hdr = MSLGaleMosaic_v3_lbl2hdr(obj.lbl);
+                obj.get_proj_info();
+            else
+                obj.lblpath = '';
+            end
 
         end
         
