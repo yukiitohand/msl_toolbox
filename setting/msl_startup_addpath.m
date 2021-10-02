@@ -32,10 +32,23 @@ addpath( ...
     joinPath(envi_toolbox_dir,'v2/')                        , ...
     joinPath(envi_toolbox_dir,'v3/')                        , ...
     joinPath(envi_toolbox_dir,'v3/lazy_mex/')               , ...
-    ...% joinPath(envi_toolbox_dir,'v3/lazy_mex/build/maci64/') , ...  For Mac computers
-    joinPath(envi_toolbox_dir,'v3/lazy_mex/build/glnxa64/') , ...  For Linux/Unix computers with x86-64 architechture, Sorry, no binary for Windows
     joinPath(envi_toolbox_dir,'v3/lazy_mex/wrapper/')         ...
 );
+
+cmp_arch = computer('arch');
+switch cmp_arch
+    case 'maci64'
+        % For Mac computers
+        addpath(joinPath(envi_toolbox_dir,'v3/lazy_mex/build/maci64/'));
+    case 'glnxa64'
+        % For Linux/Unix computers with x86-64 architechture, Sorry, no binary for Windows
+        addpath(joinPath(envi_toolbox_dir,'v3/lazy_mex/build/glnxa64/'));
+    case 'win64'
+        fprintf('manually compile mex files\n');
+    otherwise
+        error('%s is not supported',cmp_arch);
+end
+
 
 % pds3_toolbox
 pds3_toolbox_dir = joinPath(toolbox_root_dir, pds3_toolbox_dirname);
@@ -51,9 +64,8 @@ addpath( ...
 % crism_toolbox
 crism_toolbox_dir = joinPath(toolbox_root_dir, crism_toolbox_dirname);
 if ~exist(crism_toolbox_dir,'dir')
-    fprintf(['crism_toolbox not installed.\n ' ...
-        'You can optionally install crism_toolbox at\n' ...
-        'github.com/yukiitohand/crism_toolbox/']);
+    fprintf(['crism_toolbox not installed. You can optionally install crism_toolbox at\n' ...
+        '    github.com/yukiitohand/crism_toolbox/\n']);
 else
     addpath( ...
         crism_toolbox_dir                                      , ...
@@ -110,6 +122,28 @@ addpath( ...
     joinPath(msl_toolbox_dir, 'util/mslGaleMosaic/ortho/') , ...
     joinPath(msl_toolbox_dir, 'view/') ...
 );
+
+cmp_arch = computer('arch');
+switch cmp_arch
+    case 'maci64'
+        % For Mac computers
+        msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/maci64/');
+    case 'glnxa64'
+        % For Linux/Unix computers with x86-64 architechture, Sorry, no support for Windows
+        msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/glnxa64/');
+    case 'win64'
+        msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/win64/');
+    otherwise
+        error('%s is not supported',cmp_arch);
+end
+
+if exist(msl_mex_build_path,'dir')
+    addpath(msl_mex_build_path);
+else
+    addpath(msl_mex_build_path);
+    fprintf('Run msl_script_compile_all.m to compile C/MEX sources');
+end
+    
     
 
 end

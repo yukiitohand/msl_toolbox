@@ -82,10 +82,11 @@ end
 
 %% Compile files one by one
 for i=1:length(source_filepaths)
-    filepaths = source_filepaths{i};
+    filepath = source_filepaths{i};
     fprintf('Compiling %s ...\n',filepath);
     mex(filepath, '-R2018a', ['-I' pds3_toolbox_mex_include_path], ...
-        ['-I' msl_toolbox_mex_include_path]);
+        ['-I' msl_toolbox_mex_include_path], ...
+        '-outdir',out_dir);
 end
 
 % If you manually compile mex codes, include the two directories 
