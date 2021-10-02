@@ -1,3 +1,6 @@
 {
     "local_pds_msl_imaging_rootDir" : "",
+    "pds_msl_imaging_URL"           : "pds-imaging.jpl.nasa.gov/data/msl/",
+    "dirpath_cache"                 : "./cache/",
+    "dirpath_AXI1"                  : ""
 }
