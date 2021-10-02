@@ -1,5 +1,4 @@
 /setting/mslToolbox.json
-*.mat
 *.m~
 *.mexmaci64
 *.asv
