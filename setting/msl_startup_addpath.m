@@ -39,14 +39,21 @@ cmp_arch = computer('arch');
 switch cmp_arch
     case 'maci64'
         % For Mac computers
-        addpath(joinPath(envi_toolbox_dir,'v3/lazy_mex/build/maci64/'));
+        envi_mex_build_path = joinPath(envi_toolbox_dir,'v3/lazy_mex/build/maci64/');
     case 'glnxa64'
-        % For Linux/Unix computers with x86-64 architechture, Sorry, no binary for Windows
-        addpath(joinPath(envi_toolbox_dir,'v3/lazy_mex/build/glnxa64/'));
+        % For Linux/Unix computers with x86-64 architechture
+        envi_mex_build_path = joinPath(envi_toolbox_dir,'v3/lazy_mex/build/glnxa64/');
     case 'win64'
-        fprintf('manually compile mex files\n');
+        envi_mex_build_path = joinPath(envi_toolbox_dir,'v3/lazy_mex/build/win64/');
     otherwise
         error('%s is not supported',cmp_arch);
+end
+
+if exist(envi_mex_build_path,'dir')
+    addpath(envi_mex_build_path);
+else
+    addpath(envi_mex_build_path);
+    fprintf('Run envi_v3_lazy_mex_compile_all.m to compile C/MEX sources.\n');
 end
 
 
@@ -58,8 +65,38 @@ addpath( ...
     joinPath(pds3_toolbox_dir,'generic/connect/')   , ...
     joinPath(pds3_toolbox_dir,'generic/readwrite/') , ...
     joinPath(pds3_toolbox_dir,'generic/setting/')   , ...
-    joinPath(pds3_toolbox_dir,'generic/util/')        ...
+    joinPath(pds3_toolbox_dir,'generic/util/')      , ...
+    joinPath(pds3_toolbox_dir,'cahvor/') , ...
+    joinPath(pds3_toolbox_dir,'hirise/') , ...
+    joinPath(pds3_toolbox_dir,'mola/')   , ...
+    joinPath(pds3_toolbox_dir,'naif/')   , ...
+    joinPath(pds3_toolbox_dir,'naif/base/')   , ...
+    joinPath(pds3_toolbox_dir,'naif/base/connect/')   , ...
+    joinPath(pds3_toolbox_dir,'naif/base/setting/')   , ...
+    joinPath(pds3_toolbox_dir,'naif/spice_plus/')     , ...
+    joinPath(pds3_toolbox_dir,'naif/util/')             ...
 );
+
+cmp_arch = computer('arch');
+switch cmp_arch
+    case 'maci64'
+        % For Mac computers
+        pds3_mex_build_path = joinPath(pds3_toolbox_dir,'mex_build/maci64/');
+    case 'glnxa64'
+        % For Linux/Unix computers with x86-64 architechture.
+        pds3_mex_build_path = joinPath(pds3_toolbox_dir,'mex_build/glnxa64/');
+    case 'win64'
+        pds3_mex_build_path = joinPath(pds3_toolbox_dir,'mex_build/win64/');
+    otherwise
+        error('%s is not supported',cmp_arch);
+end
+
+if exist(pds3_mex_build_path,'dir')
+    addpath(pds3_mex_build_path);
+else
+    addpath(pds3_mex_build_path);
+    fprintf('Run pds3_script_compile_all.m to compile C/MEX sources.\n');
+end
 
 % crism_toolbox
 crism_toolbox_dir = joinPath(toolbox_root_dir, crism_toolbox_dirname);
@@ -129,7 +166,7 @@ switch cmp_arch
         % For Mac computers
         msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/maci64/');
     case 'glnxa64'
-        % For Linux/Unix computers with x86-64 architechture, Sorry, no support for Windows
+        % For Linux/Unix computers with x86-64 architechture
         msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/glnxa64/');
     case 'win64'
         msl_mex_build_path = joinPath(msl_toolbox_dir,'mex_build/win64/');
@@ -141,7 +178,7 @@ if exist(msl_mex_build_path,'dir')
     addpath(msl_mex_build_path);
 else
     addpath(msl_mex_build_path);
-    fprintf('Run msl_script_compile_all.m to compile C/MEX sources');
+    fprintf('Run msl_script_compile_all.m to compile C/MEX sources.\n');
 end
     
     

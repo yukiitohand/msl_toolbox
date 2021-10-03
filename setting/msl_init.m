@@ -26,6 +26,7 @@ function [] = check_mkdir(dirpath)
             fprintf('No local database will be created.\n');
         elseif strcmpi(ow,'y')
             fprintf('%s is created...\n',dirpath);
+            mkdir(dirpath);
         end
     end
 end
