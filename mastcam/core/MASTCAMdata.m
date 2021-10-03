@@ -51,7 +51,7 @@ classdef MASTCAMdata < HSI
             end
             varargin_HSI = varargin(setdiff(1:length(varargin),varargin_rmidx));
             obj@HSI(basename,dirpath,varargin_HSI{:});
-            obj.lblpath = joinPath(dirpath,[basename '.lbl']);
+            obj.lblpath = joinPath(dirpath,[basename '.LBL']);
             obj.lbl = pds3lblread(obj.lblpath);
             obj.hdr = mastcam_extract_imghdr_from_lbl(obj.lbl);
             obj.prop = getProp_basenameMASTCAM(basename);
