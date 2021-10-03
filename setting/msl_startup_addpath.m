@@ -54,7 +54,7 @@ if exist(envi_mex_build_path,'dir')
     addpath(envi_mex_build_path);
 else
     addpath(envi_mex_build_path);
-    fprintf('Run envi_v3_lazy_mex_compile_all.m to compile C/MEX sources.\n');
+    fprintf('Run envi/v3/lazy_mex/build/envi_v3_lazy_mex_compile_all.m to compile C/MEX sources.\n');
 end
 
 %%
@@ -133,7 +133,7 @@ else
     );
 end
 
-% msl_toolbox
+%% msl_toolbox
 msl_toolbox_dir = joinPath(toolbox_root_dir, msl_toolbox_dirname);
 addpath( ...
     msl_toolbox_dir                                  , ...
@@ -180,7 +180,7 @@ if exist(msl_mex_build_path,'dir')
     addpath(msl_mex_build_path);
 else
     addpath(msl_mex_build_path);
-    fprintf('Run msl_script_compile_all.m to compile C/MEX sources.\n');
+    fprintf('Run setting/msl_script_compile_all.m to compile C/MEX sources.\n');
 end
     
     
