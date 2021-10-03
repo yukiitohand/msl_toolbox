@@ -17,6 +17,7 @@ crism_toolbox_dirname         = 'crism_toolbox';
 msl_toolbox_dirname           = 'msl_toolbox';
 
 %-------------------------------------------------------------------------%
+%%
 % base toolbox
 base_toolbox_dir = [toolbox_root_dir base_toolbox_dirname '/'];
 addpath(base_toolbox_dir);
@@ -24,7 +25,7 @@ addpath(base_toolbox_dir);
 % need to be loaded first. base/joinPath.m automatically determine the
 % presence of trailing slash, so you do not need to worry it.
 
-
+%%
 % envi toolbox
 envi_toolbox_dir = joinPath(toolbox_root_dir, envi_toolbox_dirname);
 addpath( ...
@@ -56,7 +57,7 @@ else
     fprintf('Run envi_v3_lazy_mex_compile_all.m to compile C/MEX sources.\n');
 end
 
-
+%%
 % pds3_toolbox
 pds3_toolbox_dir = joinPath(toolbox_root_dir, pds3_toolbox_dirname);
 addpath( ...
@@ -98,6 +99,7 @@ else
     fprintf('Run pds3_script_compile_all.m to compile C/MEX sources.\n');
 end
 
+%%
 % crism_toolbox
 crism_toolbox_dir = joinPath(toolbox_root_dir, crism_toolbox_dirname);
 if ~exist(crism_toolbox_dir,'dir')
