@@ -65,14 +65,40 @@ end
 
 mastcam_rootpath = joinPath(localrootDir,pds_msl_imaging_URL);
 
-dpath_tempfile = '/Users/yukiitoh/src/matlab/toolbox/msl_toolbox/places';
+% dpath_tempfile = '/Users/yukiitoh/src/matlab/toolbox/msl_toolbox/places';
+
+fpath_self = mfilename('fullpath');
+[dirpath_self,filename] = fileparts(fpath_self);
+dpath_tempfile = dirpath_self;
 
 % get telemetry data
 mslplc_view_matfname = sprintf('MSLPLC_%s.mat',basename_view);
 mslplc_view_matfpath = joinPath(dpath_tempfile,mslplc_view_matfname);
 if ~exist(mslplc_view_matfpath,'file')
-    lbl_mslplc_view = pds3lblread(joinPath(mastcam_rootpath,'MSLPLC_1XXX/DATA/LOCALIZATIONS',[basename_view, '.lbl']));
-    mslplc_view = mslplc_view_csv_read(joinPath(mastcam_rootpath,'MSLPLC_1XXX/DATA/LOCALIZATIONS',[basename_view '.csv']),lbl_mslplc_view);
+    %% Download csv and lbl files
+    mslplc_subdir = 'MSLPLC_1XXX/DATA/LOCALIZATIONS';
+    mslplc_dirpath = joinPath(mastcam_rootpath,mslplc_subdir);
+    fnamelist = dir(mslplc_dirpath);
+    [basename,fname_wext] = extractMatchedBasename_v2([basename_view '.lbl'],[{fnamelist.name}],'exact',1);
+    if isempty(basename)
+        pds_msl_imaging_downloader(mslplc_subdir,'basenameptrn',[basename_view '.lbl'],'dwld',2);
+        fnamelist = dir(mslplc_dirpath);
+        [basename,fname_wext] = extractMatchedBasename_v2([basename_view '.lbl'],[{fnamelist.name}],'exact',1);
+    end
+    lbl_mslplc_view_path = joinPath(mslplc_dirpath,fname_wext{1});
+    
+    [basename,fname_wext] = extractMatchedBasename_v2([basename_view '.csv'],[{fnamelist.name}],'exact',1);
+    if isempty(basename)
+        pds_msl_imaging_downloader(mslplc_subdir,'basenameptrn',[basename_view '.csv'],'dwld',2);
+        fnamelist = dir(mslplc_dirpath);
+        [basename,fname_wext] = extractMatchedBasename_v2([basename_view '.csv'],[{fnamelist.name}],'exact',1);
+    end
+    csv_mslplc_view_path = joinPath(mslplc_dirpath,fname_wext{1});
+    
+    %%
+    lbl_mslplc_view = pds3lblread(lbl_mslplc_view_path);
+    mslplc_view = mslplc_view_csv_read(csv_mslplc_view_path,lbl_mslplc_view);
+    
     MSLPLC_view_FRAME = cat(1,{mslplc_view.FRAME})';
     MSLPLC_view_FRAME = cellfun(@(x) sprintf('% 5s',x),MSLPLC_view_FRAME,'UniformOutput',0);
     MSLPLC_view_FRAME = cat(1,MSLPLC_view_FRAME{:});
