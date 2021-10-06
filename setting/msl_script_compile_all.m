@@ -1,3 +1,4 @@
+function [] = msl_script_compile_all()
 % msl_script_compile_all.m
 % Script for compiling all the necessary C/MEX codes
 %
@@ -95,4 +96,6 @@ end
 %     msl_toolbox_mex_include_path
 % using -I option.
 % Also do not forget to add '-R2018a'
+
+end
 
