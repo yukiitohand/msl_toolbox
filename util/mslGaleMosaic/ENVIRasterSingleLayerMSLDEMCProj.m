@@ -18,6 +18,21 @@ classdef ENVIRasterSingleLayerMSLDEMCProj < ENVIRasterSingleLayerEquirectProjRot
      methods
         function obj = ENVIRasterSingleLayerMSLDEMCProj(basename,dirpath,varargin)
             
+            msldem_dirpath  = '';
+            msldem_basename = '';
+            if ~isempty(varargin)
+                for i=1:2:length(varargin)
+                    switch upper(varargin{i})
+                        case 'MSLDEM_DIRPATH'
+                            msldem_dirpath  = varargin{i+1};
+                        case 'MSLDEM_BASENAME'
+                            msldem_basename = varargin{i+1};
+                        otherwise
+                            error('Unrecognized option: %s', varargin{i});
+                    end
+                end
+            end
+
             obj@ENVIRasterSingleLayerEquirectProjRot0(...
                 basename,dirpath,varargin{:});
             
@@ -36,9 +51,18 @@ classdef ENVIRasterSingleLayerMSLDEMCProj < ENVIRasterSingleLayerEquirectProjRot
                 else
                     error('msldemc_line_offset is not defined in the header file.');
                 end
+
+                if isempty(msldem_dirpath)
+                    msldem_dirpath = obj.hdr.msldem_dirpath;
+                end
+                if isempty(msldem_basename)
+                    msldem_basename = obj.hdr.msldem_basename;
+                end
                 
-                obj.base = MSLGaleDEMMosaic_v3(obj.hdr.msldem_basename,obj.hdr.msldem_dirpath);
-                % obj.get_proj_info_from_base();
+                if exist(msldem_dirpath,'dir')
+                    obj.base = MSLGaleDEMMosaic_v3(msldem_basename,msldem_dirpath);
+                    % obj.get_proj_info_from_base();
+                end
                 
             end
             
