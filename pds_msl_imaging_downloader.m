@@ -21,8 +21,6 @@ function [dirs,files] = pds_msl_imaging_downloader(subdir_local,varargin)
 %                         (default) 0
 %      'HTMLFILE'           : path to the html file to be read
 %                         (default) ''
-%      'OUT_FILE'       : path to the output file
-%                         (default) ''
 %   Outputs
 %      dirs: cell array, list of dirs in the directory
 %      files: cell array, list of files downloaded
@@ -37,7 +35,7 @@ localrootDir = msl_env_vars.local_pds_msl_imaging_rootDir;
 
 url_remote_root = 'pds-imaging.jpl.nasa.gov/data/msl/';
 
-url_local_root = joinPath(localrootDir, 'pds-imaging.jpl.nasa.gov/data/msl/');
+url_local_root = fullfile(localrootDir, 'pds-imaging.jpl.nasa.gov','data','msl');
 
 
 basenamePtrn = '.*';
@@ -69,8 +67,6 @@ else
                 html_file = varargin{i+1};
             case {'DWLD','DOWNLOAD'}
                 dwld = varargin{i+1};
-            case 'OUT_FILE'
-                outfile = varargin{i+1};
             case 'CACHE_UPDATE'
                 cache_update = varargin{i+1};
             otherwise
@@ -220,9 +216,6 @@ else
     end
 end
 % 
-if ~isempty(outfile)
-    fp = fopen(outfile,'a');
-end
 if ~errflg
     
     % get all the links
@@ -241,14 +234,13 @@ if ~errflg
                 % recursively access the directory
                 fprintf('Going to %s\n',joinPath(subdir_local,lnks(i).hyperlink));
                 [dirs_ch,files_ch] = pds_downloader(...
-                    joinPath(subdir_local,upper(lnks(i).hyperlink)),...
-                    'SUBDIR_REMOTE',joinPath(subdir_remote,lnks(i).hyperlink),...
+                    fullfile(subdir_local,upper(lnks(i).hyperlink)),...
+                    'SUBDIR_REMOTE',joinPath_wSlash(subdir_remote,lnks(i).hyperlink),...
                     'Basenameptrn',basenamePtrn,'dirskip',dirskip,...
-                    'protocol',protocol,'overwrite',overwrite,'dwld',dwld,...
-                    'out_file',outfile);
+                    'protocol',protocol,'overwrite',overwrite,'dwld',dwld);
             end
         else
-            remoteFile = [protocol '://' joinPath(url_remote,lnks(i).hyperlink)];
+            remoteFile = [protocol '://' joinPath_wSlash(url_remote,lnks(i).hyperlink)];
             if ~isempty(regexpi(lnks(i).hyperlink,basenamePtrn,'ONCE'))
                 match_flg = 1;
                 
@@ -256,7 +248,7 @@ if ~errflg
                     mkdir(localTargetDir);
                 end
                 
-                localTarget =joinPath(localTargetDir,upper(lnks(i).hyperlink));
+                localTarget = fullfile(localTargetDir,upper(lnks(i).hyperlink));
                 if dwld==2
                     if exist(localTarget,'file') && ~overwrite
                         fprintf('Exist: %s\n',localTarget);
@@ -295,13 +287,6 @@ if ~errflg
                     else
                         fprintf('%s,%s\n',remoteFile,localTarget);
                     end
-                    if ~isempty(outfile)
-                        if no_local_directory
-                             fprintf(fp,'%s\n',remoteFile);
-                        else
-                            fprintf(fp,'%s,%s\n',remoteFile,localTarget);
-                        end
-                    end
                 elseif dwld==0
                     fprintf('Nothing happens with dwld=0\n');
                 else
@@ -316,10 +301,6 @@ if ~errflg
         fprintf('No file matches %s in %s.\n',basenamePtrn,subdir_remote);
         
     end
-end
-
-if ~isempty(outfile)
-    fclose(fp);
 end
 
 end
